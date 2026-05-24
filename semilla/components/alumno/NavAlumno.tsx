@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import IlustracionSemilla from "@/components/IlustracionSemilla";
 
 // Componente de navegación del alumno (client-side para logout)
 export default function NavAlumno() {
@@ -59,12 +60,10 @@ export default function NavAlumno() {
         {/* Logo */}
         <Link href="/alumno" className="flex items-center gap-2">
           <div
-            className="flex h-8 w-8 items-center justify-center rounded-xl"
-            style={{ background: "var(--s-navy)" }}
+            className="flex h-9 w-9 items-center justify-center rounded-xl border"
+            style={{ background: "var(--s-surface)", borderColor: "var(--s-border)" }}
           >
-            <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3C7 3 3 7 3 12s4 9 9 9 9-4 9-9M12 3c2 4 3 7 0 9M12 3c1 3 3 6 5 7" />
-            </svg>
+            <IlustracionSemilla className="h-6 w-6" />
           </div>
           <span className="font-bold text-base" style={{ color: "var(--s-navy)" }}>
             Semilla

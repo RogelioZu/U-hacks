@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import IlustracionSemilla from "@/components/IlustracionSemilla";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -94,23 +95,10 @@ export default function LoginPage() {
         {/* Logo / cabecera */}
         <div className="mb-8 text-center">
           <div
-            className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg"
-            style={{ background: "var(--s-navy)" }}
+            className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border shadow-lg"
+            style={{ background: "var(--s-surface)", borderColor: "var(--s-border)" }}
           >
-            {/* Ícono hoja/semilla */}
-            <svg
-              className="h-8 w-8 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.8}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 3C7 3 3 7 3 12s4 9 9 9 9-4 9-9M12 3c2 4 3 7 0 9M12 3c1 3 3 6 5 7"
-              />
-            </svg>
+            <IlustracionSemilla className="h-10 w-10" />
           </div>
           <h1
             className="text-3xl font-bold"

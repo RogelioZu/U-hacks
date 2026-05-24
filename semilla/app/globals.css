@@ -162,3 +162,67 @@ body {
 .semilla-spin {
   animation: semilla-spin 0.9s linear infinite;
 }
+
+/* Revelado escalonado (cascada solo-CSS). Usa --index por elemento. */
+@keyframes semilla-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.semilla-fade-up {
+  opacity: 0;
+  animation: semilla-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: calc(var(--index, 0) * 60ms);
+}
+
+/* Skeleton shimmer para portadas que aún cargan */
+.semilla-shimmer {
+  background: linear-gradient(
+    100deg,
+    var(--s-indigo-lt) 30%,
+    #E0E7FF 50%,
+    var(--s-indigo-lt) 70%
+  );
+  background-size: 200% 100%;
+  animation: semilla-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes semilla-shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+/* Flotación suave para mascotas/ilustraciones (estilo Ellsy) */
+@keyframes semilla-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+.semilla-float { animation: semilla-float 3.6s ease-in-out infinite; }
+
+/* Aparición con rebote para resultados y badges */
+@keyframes semilla-pop {
+  0%   { opacity: 0; transform: scale(0.8); }
+  60%  { transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.semilla-pop { animation: semilla-pop 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* Puntos que rebotan (loader amigable) */
+@keyframes semilla-bounce {
+  0%, 100% { transform: translateY(0);    opacity: 0.45; }
+  50%      { transform: translateY(-7px); opacity: 1; }
+}
+.semilla-bounce { animation: semilla-bounce 1s ease-in-out infinite; }
+
+/* Relleno animado del anillo de puntaje (de vacío a su valor) */
+@keyframes semilla-ring-fill {
+  from { stroke-dashoffset: var(--circ); }
+}
+.semilla-ring { animation: semilla-ring-fill 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .semilla-fade-up,
+  .semilla-shimmer,
+  .semilla-float,
+  .semilla-pop,
+  .semilla-bounce,
+  .semilla-ring { animation: none; opacity: 1; }
+}

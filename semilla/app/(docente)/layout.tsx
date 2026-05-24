@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import LogoutButton from "@/components/docente/LogoutButton";
 import ChatAsistente from "@/components/ChatAsistente";
+import IlustracionSemilla from "@/components/IlustracionSemilla";
 
 // Layout compartido para todas las rutas del docente.
 // Verifica sesión y rol — segunda capa tras proxy.ts.
@@ -72,12 +73,10 @@ export default async function LayoutDocente({
           {/* Logo */}
           <div className="flex items-center gap-2">
             <div
-              className="flex h-8 w-8 items-center justify-center rounded-xl"
-              style={{ background: "var(--s-navy)" }}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border"
+              style={{ background: "var(--s-surface)", borderColor: "var(--s-border)" }}
             >
-              <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3C7 3 3 7 3 12s4 9 9 9 9-4 9-9M12 3c2 4 3 7 0 9M12 3c1 3 3 6 5 7" />
-              </svg>
+              <IlustracionSemilla className="h-6 w-6" />
             </div>
             <span className="font-bold text-base" style={{ color: "var(--s-navy)" }}>Semilla</span>
             <span

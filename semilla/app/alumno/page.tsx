@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import type { Metadata } from "next";
+import LibrosTexto from "@/components/alumno/LibrosTexto";
 
 export const metadata: Metadata = {
   title: "Panel del Alumno — Semilla",
@@ -48,6 +49,9 @@ export default async function AlumnoPage() {
           retroalimentación personalizada.
         </p>
       </section>
+
+      {/* Libros de texto de Telesecundaria */}
+      <LibrosTexto />
 
       {/* Acciones rápidas */}
       <section className="grid gap-5 sm:grid-cols-2">

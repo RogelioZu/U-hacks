@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import IlustracionSemilla from "@/components/IlustracionSemilla";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tipos
@@ -337,13 +338,27 @@ export default function AlumnoQuizPage() {
   // ── Loading ───────────────────────────────────────────────────────────────
   if (cargando) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-center">
-          <div
-            className="mx-auto mb-4 h-10 w-10 semilla-spin rounded-full border-4"
-            style={{ borderColor: "var(--s-border)", borderTopColor: "var(--s-orange)" }}
-          />
-          <p style={{ color: "var(--s-text-muted)" }}>Cargando quiz…</p>
+      <div className="relative flex min-h-[60vh] flex-col items-center justify-center overflow-hidden">
+        <BlobsDecorativos />
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="semilla-float">
+            <IlustracionSemilla className="h-24 w-24" />
+          </div>
+          <div className="mt-6 flex items-center gap-1.5">
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="semilla-bounce h-2.5 w-2.5 rounded-full"
+                style={{
+                  background: "var(--s-orange)",
+                  animationDelay: `${i * 0.16}s`,
+                }}
+              />
+            ))}
+          </div>
+          <p className="mt-4 font-medium" style={{ color: "var(--s-navy)" }}>
+            Preparando tu quiz…
+          </p>
         </div>
       </div>
     );
@@ -352,25 +367,75 @@ export default function AlumnoQuizPage() {
   // ── Resultados ────────────────────────────────────────────────────────────
   if (terminado) {
     const pct = Math.round((score / preguntas.length) * 100);
+    const nivel =
+      pct >= 80
+        ? {
+            titulo: "¡Excelente trabajo!",
+            sub: "Dominaste el quiz de esta semana.",
+            color: "var(--s-success)",
+          }
+        : pct >= 50
+        ? {
+            titulo: "¡Vas por buen camino!",
+            sub: "Un poco más de práctica y lo logras.",
+            color: "var(--s-orange)",
+          }
+        : {
+            titulo: "¡Sigamos sembrando!",
+            sub: "Cada intento te acerca a entenderlo mejor.",
+            color: "var(--s-navy)",
+          };
+
+    // Anillo de puntaje (r=52 → circunferencia ≈ 326.73)
+    const circ = 2 * Math.PI * 52;
+    const offset = circ * (1 - pct / 100);
+
     return (
-      <div className="flex min-h-[70vh] items-center justify-center">
-        <div className="s-card p-10 text-center max-w-md w-full">
-          <div className="text-5xl mb-4">
-            {pct >= 80 ? "🎉" : pct >= 50 ? "💪" : "📚"}
+      <div className="relative flex min-h-[70vh] items-center justify-center overflow-hidden">
+        <BlobsDecorativos />
+        <div className="s-card semilla-pop relative z-10 w-full max-w-md p-8 text-center sm:p-10">
+          {pct >= 80 && <ConfetiDecorativo />}
+
+          {/* Anillo de puntaje con ilustración al centro */}
+          <div className="relative mx-auto h-40 w-40">
+            <svg viewBox="0 0 120 120" className="h-40 w-40 -rotate-90">
+              <circle
+                cx="60" cy="60" r="52" fill="none"
+                stroke="var(--s-indigo-lt)" strokeWidth="10"
+              />
+              <circle
+                className="semilla-ring"
+                cx="60" cy="60" r="52" fill="none"
+                stroke={nivel.color} strokeWidth="10" strokeLinecap="round"
+                strokeDasharray={circ}
+                strokeDashoffset={offset}
+                style={{ ["--circ" as string]: circ }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-4xl font-extrabold leading-none" style={{ color: "var(--s-navy)" }}>
+                {pct}%
+              </span>
+              <span className="mt-1 text-xs font-semibold" style={{ color: "var(--s-text-muted)" }}>
+                {score}/{preguntas.length}
+              </span>
+            </div>
           </div>
-          <h2 className="text-2xl font-bold" style={{ color: "var(--s-navy)" }}>
-            ¡Quiz terminado!
+
+          <h2 className="mt-6 text-2xl font-bold" style={{ color: "var(--s-navy)" }}>
+            {nivel.titulo}
           </h2>
-          <p className="mt-2" style={{ color: "var(--s-text-muted)" }}>
-            Respondiste{" "}
-            <strong style={{ color: "var(--s-orange)" }}>{score}</strong> de{" "}
-            <strong>{preguntas.length}</strong> preguntas correctamente ({pct}%).
+          <p className="mt-1.5" style={{ color: "var(--s-text-muted)" }}>
+            {nivel.sub}
           </p>
+
           {modoDemo && (
-            <p className="mt-2 text-sm" style={{ color: "var(--s-text-muted)" }}>
+            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
+               style={{ background: "var(--s-orange-lt)", color: "var(--s-orange)" }}>
               Modo demo — tus respuestas no se guardaron.
             </p>
           )}
+
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <a href="/alumno/progreso" className="s-btn-primary">
               Ver mi progreso
@@ -385,166 +450,309 @@ export default function AlumnoQuizPage() {
   }
 
   // ── Quiz ──────────────────────────────────────────────────────────────────
-  const pctProgreso = (indice / preguntas.length) * 100;
+  const pctProgreso = ((indice + (estadoRespuesta === "correcta" ? 1 : 0)) / preguntas.length) * 100;
 
   return (
-    <div className="space-y-6">
-      {/* Encabezado / Progreso */}
-      <section className="s-card p-6">
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <div>
-            <p
-              className="text-xs font-semibold uppercase tracking-widest"
-              style={{ color: "var(--s-orange)" }}
-            >
-              Quiz semanal
-            </p>
-            <h1 className="mt-1 text-xl font-bold" style={{ color: "var(--s-navy)" }}>
-              Matemáticas — Semana actual
-            </h1>
-          </div>
-          <div className="flex flex-col items-end gap-1">
-            <span
-              className="s-badge"
-              style={{ background: "var(--s-indigo-lt)", color: "var(--s-navy)" }}
-            >
-              {indice + 1} / {preguntas.length}
-            </span>
-            {modoDemo && (
+    <div className="relative">
+      <BlobsDecorativos />
+
+      <div className="relative z-10 space-y-6">
+        {/* Encabezado / Progreso */}
+        <section className="s-card p-6">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+                style={{ background: "var(--s-orange-lt)" }}
+              >
+                <IlustracionSemilla className="h-7 w-7" />
+              </div>
+              <div>
+                <p
+                  className="text-xs font-semibold uppercase tracking-widest"
+                  style={{ color: "var(--s-orange)" }}
+                >
+                  Quiz semanal
+                </p>
+                <h1 className="mt-0.5 text-xl font-bold" style={{ color: "var(--s-navy)" }}>
+                  Matemáticas — Semana actual
+                </h1>
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-1">
               <span
                 className="s-badge"
-                style={{ background: "var(--s-orange-lt)", color: "var(--s-orange)" }}
+                style={{ background: "var(--s-indigo-lt)", color: "var(--s-navy)" }}
               >
-                Demo
+                {indice + 1} / {preguntas.length}
               </span>
-            )}
-          </div>
-        </div>
-
-        {/* Barra de progreso */}
-        <div
-          className="h-2 w-full overflow-hidden rounded-full"
-          style={{ background: "var(--s-indigo-lt)" }}
-        >
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${pctProgreso}%`, background: "var(--s-orange)" }}
-          />
-        </div>
-      </section>
-
-      {/* Pregunta */}
-      {preguntaActual && (
-        <section className="s-card p-6 space-y-5">
-          {/* Enunciado */}
-          <div
-            className="rounded-xl p-5"
-            style={{ background: "var(--s-indigo-lt)" }}
-          >
-            <h2 className="text-lg font-semibold leading-7" style={{ color: "var(--s-navy)" }}>
-              {preguntaActual.texto}
-            </h2>
-          </div>
-
-          {/* Opciones */}
-          <div className="grid gap-3 sm:grid-cols-2">
-            {preguntaActual.opciones.map((opcion) => {
-              let estilo: React.CSSProperties = {
-                background: "var(--s-surface)",
-                borderColor: "var(--s-border)",
-                color: "var(--s-text)",
-              };
-
-              if (estadoRespuesta === "correcta") {
-                if (opcion.clave === preguntaActual.correcta) {
-                  estilo = {
-                    background: "#F0FDF4",
-                    borderColor: "#86EFAC",
-                    color: "#15803D",
-                  };
-                } else {
-                  estilo = {
-                    background: "#F9FAFB",
-                    borderColor: "var(--s-border)",
-                    color: "#9CA3AF",
-                  };
-                }
-              }
-
-              return (
-                <button
-                  key={opcion.clave}
-                  id={`opcion-${opcion.clave}`}
-                  type="button"
-                  onClick={() => seleccionarOpcion(opcion.clave)}
-                  disabled={procesando || estadoRespuesta === "correcta" || terminado}
-                  className="group rounded-2xl border-2 px-5 py-4 text-left transition-all hover:shadow-md disabled:cursor-not-allowed"
-                  style={{
-                    ...estilo,
-                    ...(procesando ? { opacity: 0.65 } : {}),
-                  }}
+              {modoDemo && (
+                <span
+                  className="s-badge"
+                  style={{ background: "var(--s-orange-lt)", color: "var(--s-orange)" }}
                 >
-                  <span
-                    className="text-xs font-bold"
-                    style={{ color: "var(--s-orange)" }}
-                  >
-                    {opcion.clave}
-                  </span>
-                  <p className="mt-1 text-sm font-medium leading-5">{opcion.texto}</p>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Feedback */}
-          {mensaje && (
-            <div
-              className="rounded-2xl border-2 p-5"
-              style={
-                estadoRespuesta === "correcta"
-                  ? { background: "#F0FDF4", borderColor: "#86EFAC" }
-                  : { background: "var(--s-orange-lt)", borderColor: "#FED7AA" }
-              }
-            >
-              <p
-                className="font-semibold"
-                style={{
-                  color:
-                    estadoRespuesta === "correcta"
-                      ? "var(--s-success)"
-                      : "var(--s-orange)",
-                }}
-              >
-                {mensaje}
-              </p>
-              {feedback && (
-                <p className="mt-2 text-sm leading-6" style={{ color: "var(--s-text-muted)" }}>
-                  {feedback}
-                </p>
-              )}
-              {estadoRespuesta === "incorrecta" && !procesando && (
-                <button
-                  id="btn-intentar-nuevo"
-                  type="button"
-                  onClick={intentarDeNuevo}
-                  className="s-btn-secondary mt-4 text-sm"
-                >
-                  ↩ Volver a intentar
-                </button>
+                  Demo
+                </span>
               )}
             </div>
-          )}
+          </div>
 
-          {procesando && (
-            <p
-              className="text-center text-sm animate-pulse"
-              style={{ color: "var(--s-text-muted)" }}
-            >
-              Generando orientación personalizada con IA…
-            </p>
-          )}
+          {/* Barra de progreso */}
+          <div
+            className="relative h-2.5 w-full overflow-hidden rounded-full"
+            style={{ background: "var(--s-indigo-lt)" }}
+          >
+            <div
+              className="h-full rounded-full transition-all duration-700 ease-out"
+              style={{
+                width: `${pctProgreso}%`,
+                background: "linear-gradient(90deg, var(--s-orange), var(--s-rose-dark))",
+              }}
+            />
+          </div>
         </section>
-      )}
+
+        {/* Pregunta */}
+        {preguntaActual && (
+          <section className="s-card space-y-5 p-6">
+            {/* Enunciado */}
+            <div
+              className="relative overflow-hidden rounded-2xl p-5 pr-12"
+              style={{ background: "var(--s-indigo-lt)" }}
+            >
+              <p
+                className="mb-1 text-[11px] font-bold uppercase tracking-widest"
+                style={{ color: "var(--s-indigo)" }}
+              >
+                Pregunta {indice + 1}
+              </p>
+              <h2 className="text-lg font-semibold leading-7" style={{ color: "var(--s-navy)" }}>
+                {preguntaActual.texto}
+              </h2>
+              <ChispaDoodle className="absolute -right-2 -top-2 h-16 w-16 opacity-70" />
+            </div>
+
+            {/* Opciones */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {preguntaActual.opciones.map((opcion, i) => {
+                const esCorrectaResuelta =
+                  estadoRespuesta === "correcta" && opcion.clave === preguntaActual.correcta;
+                const atenuada =
+                  estadoRespuesta === "correcta" && opcion.clave !== preguntaActual.correcta;
+
+                let estilo: React.CSSProperties = {
+                  background: "var(--s-surface)",
+                  borderColor: "var(--s-border)",
+                  color: "var(--s-text)",
+                };
+                if (esCorrectaResuelta) {
+                  estilo = { background: "#F0FDF4", borderColor: "#86EFAC", color: "#15803D" };
+                } else if (atenuada) {
+                  estilo = { background: "#F9FAFB", borderColor: "var(--s-border)", color: "#9CA3AF" };
+                }
+
+                const activable = !procesando && estadoRespuesta !== "correcta" && !terminado;
+
+                return (
+                  <button
+                    key={`${indice}-${opcion.clave}`}
+                    id={`opcion-${opcion.clave}`}
+                    type="button"
+                    onClick={() => seleccionarOpcion(opcion.clave)}
+                    disabled={procesando || estadoRespuesta === "correcta" || terminado}
+                    style={{ ...estilo, ...(procesando ? { opacity: 0.65 } : {}), ["--index" as string]: i }}
+                    className={`semilla-fade-up flex items-center gap-3 rounded-2xl border-2 px-4 py-4 text-left transition-all duration-150 disabled:cursor-not-allowed ${
+                      activable ? "hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]" : ""
+                    }`}
+                  >
+                    <span
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-colors"
+                      style={
+                        esCorrectaResuelta
+                          ? { background: "#86EFAC", color: "#15803D" }
+                          : atenuada
+                          ? { background: "#F3F4F6", color: "#9CA3AF" }
+                          : { background: "var(--s-orange-lt)", color: "var(--s-orange)" }
+                      }
+                    >
+                      {esCorrectaResuelta ? <IconCheck className="h-5 w-5" /> : opcion.clave}
+                    </span>
+                    <span className="text-sm font-medium leading-5">{opcion.texto}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Feedback */}
+            {mensaje && (
+              <div
+                className="semilla-pop flex gap-3 rounded-2xl border-2 p-5"
+                style={
+                  estadoRespuesta === "correcta"
+                    ? { background: "#F0FDF4", borderColor: "#86EFAC" }
+                    : { background: "var(--s-orange-lt)", borderColor: "#FED7AA" }
+                }
+              >
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                  style={
+                    estadoRespuesta === "correcta"
+                      ? { background: "#86EFAC", color: "#15803D" }
+                      : { background: "#FFE3D6", color: "var(--s-orange)" }
+                  }
+                >
+                  {estadoRespuesta === "correcta" ? (
+                    <IconCheck className="h-5 w-5" />
+                  ) : (
+                    <IconBombilla className="h-5 w-5" />
+                  )}
+                </span>
+                <div className="flex-1">
+                  <p
+                    className="font-semibold"
+                    style={{
+                      color:
+                        estadoRespuesta === "correcta" ? "var(--s-success)" : "var(--s-orange)",
+                    }}
+                  >
+                    {mensaje}
+                  </p>
+                  {feedback && (
+                    <p className="mt-1.5 text-sm leading-6" style={{ color: "var(--s-text-muted)" }}>
+                      {feedback}
+                    </p>
+                  )}
+                  {estadoRespuesta === "incorrecta" && !procesando && (
+                    <button
+                      id="btn-intentar-nuevo"
+                      type="button"
+                      onClick={intentarDeNuevo}
+                      className="s-btn-secondary mt-4 text-sm"
+                    >
+                      <IconReintentar className="h-4 w-4" />
+                      Volver a intentar
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {procesando && (
+              <div className="flex items-center justify-center gap-2 py-1">
+                <span className="flex items-center gap-1">
+                  {[0, 1, 2].map((i) => (
+                    <span
+                      key={i}
+                      className="semilla-bounce h-1.5 w-1.5 rounded-full"
+                      style={{ background: "var(--s-orange)", animationDelay: `${i * 0.16}s` }}
+                    />
+                  ))}
+                </span>
+                <p className="text-sm" style={{ color: "var(--s-text-muted)" }}>
+                  Generando orientación personalizada con IA…
+                </p>
+              </div>
+            )}
+          </section>
+        )}
+      </div>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Ilustraciones y doodles (estilo Ellsy) — SVG inline, paleta del proyecto
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Chispa/destello decorativo de cuatro puntas. */
+function ChispaDoodle({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} fill="none" aria-hidden>
+      <path
+        d="M32 14 C 33 26 38 31 50 32 C 38 33 33 38 32 50 C 31 38 26 33 14 32 C 26 31 31 26 32 14 Z"
+        fill="var(--s-rose-dark)"
+        opacity="0.55"
+      />
+    </svg>
+  );
+}
+
+/** Confeti decorativo para resultados altos. */
+function ConfetiDecorativo() {
+  const piezas = [
+    { left: "8%", top: "10%", color: "var(--s-orange)", r: 4 },
+    { left: "22%", top: "4%", color: "var(--s-rose-dark)", r: 3 },
+    { left: "78%", top: "8%", color: "var(--s-indigo)", r: 4 },
+    { left: "90%", top: "20%", color: "var(--s-orange)", r: 3 },
+    { left: "14%", top: "26%", color: "var(--s-indigo)", r: 3 },
+    { left: "86%", top: "40%", color: "var(--s-rose-dark)", r: 4 },
+  ];
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      {piezas.map((p, i) => (
+        <span
+          key={i}
+          className="semilla-float absolute rounded-full"
+          style={{
+            left: p.left,
+            top: p.top,
+            width: p.r * 2,
+            height: p.r * 2,
+            background: p.color,
+            animationDelay: `${i * 0.25}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Blobs decorativos de fondo (se mantienen detrás vía z-0). */
+function BlobsDecorativos() {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+      <div
+        className="absolute -right-12 -top-12 h-48 w-48 rounded-full opacity-15"
+        style={{ background: "var(--s-orange)" }}
+      />
+      <div
+        className="absolute -left-16 top-1/3 h-44 w-44 rounded-full opacity-10"
+        style={{ background: "var(--s-navy)" }}
+      />
+      <div
+        className="absolute bottom-6 right-1/4 h-28 w-28 rounded-full opacity-10"
+        style={{ background: "var(--s-rose-dark)" }}
+      />
+    </div>
+  );
+}
+
+function IconCheck({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="m6 12.5 3.5 3.5 8-9" />
+    </svg>
+  );
+}
+
+function IconBombilla({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 18h6M10 21h4" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 3a6 6 0 0 0-3.5 10.9c.6.5.9 1.2 1 1.9l.1.7h4.8l.1-.7c.1-.7.4-1.4 1-1.9A6 6 0 0 0 12 3Z"
+      />
+    </svg>
+  );
+}
+
+function IconReintentar({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 12a8 8 0 0 1 13.7-5.6L20 8M20 4v4h-4" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20 12a8 8 0 0 1-13.7 5.6L4 16M4 20v-4h4" />
+    </svg>
   );
 }
