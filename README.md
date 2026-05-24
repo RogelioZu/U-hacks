@@ -10,12 +10,12 @@
   fricción operativa y uso _offline-first_.
 
   <p>
-    <img alt="Next.js" src="https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white" />
-    <img alt="React" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" />
     <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white" />
-    <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white" />
-    <img alt="Supabase" src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase&logoColor=white" />
-    <img alt="IA" src="https://img.shields.io/badge/IA-Gemini_2.5_Flash-8E75B2?logo=googlegemini&logoColor=white" />
+    <img alt="Azure Static Web Apps" src="https://img.shields.io/badge/Azure_Static_Web_Apps-0078D4?logo=microsoftazure&logoColor=white" />
+    <img alt="Azure SQL" src="https://img.shields.io/badge/Azure_SQL_Database-0078D4?logo=microsoftazure&logoColor=white" />
+    <img alt="Microsoft Entra ID" src="https://img.shields.io/badge/Microsoft_Entra_ID-0078D4?logo=microsoft&logoColor=white" />
+    <img alt="Azure Blob Storage" src="https://img.shields.io/badge/Azure_Blob_Storage-0078D4?logo=microsoftazure&logoColor=white" />
+    <img alt="Azure OpenAI" src="https://img.shields.io/badge/Azure_OpenAI_Service-0078D4?logo=microsoftazure&logoColor=white" />
   </p>
 </div>
 
@@ -64,38 +64,36 @@ educativo mexicano: ciclo escolar, bloques, CCT, CTE y repetición espaciada.
 
 | Capa | Tecnología | Detalle |
 |---|---|---|
-| **Framework** | Next.js 16.2.6 (App Router) | `proxy.ts` reemplaza a `middleware.ts` |
-| **UI** | React 19 | |
-| **Estilos** | Tailwind CSS v4 | vía `@tailwindcss/postcss`, sin config clásico |
-| **Lenguaje** | TypeScript 5 | |
-| **BD / Auth / Storage** | Supabase | PostgreSQL 15, Auth JWT, RLS (`@supabase/ssr`) |
-| **IA** | Google Gemini `gemini-2.5-flash` | wrapper central en `lib/ai.ts` (`@google/genai`) |
+| **Hosting / Framework** | Azure Static Web Apps | Despliegue nativo con SSR, CI/CD desde GitHub |
+| **Lenguaje** | TypeScript 5 | Desarrollado por Microsoft |
+| **BD** | Azure SQL Database | SQL Server gestionado en la nube |
+| **Auth** | Microsoft Entra ID | Autenticación JWT + gestión de identidades |
+| **Storage** | Azure Blob Storage | Almacenamiento de archivos y recursos estáticos |
+| **IA** | Azure OpenAI Service (GPT-4o) | Modelo de lenguaje gestionado por Microsoft |
 
 ---
 
-## 🟦 Mapeo a stack Microsoft
+## 🟦 Stack Microsoft
 
-Este proyecto se desarrolló para el **Hackathon de Microsoft**. La arquitectura es
-portable 1:1 a servicios gestionados de Azure: lo que no es de Microsoft (React,
-Tailwind) no se reemplaza, y lo que sí lo es (TypeScript) ya está cubierto.
+Este proyecto se desarrolló íntegramente sobre servicios y tecnologías de **Microsoft**:
 
-| Lo que usamos | Equivalente Microsoft | Por qué es equivalente |
+| Tecnología | Servicio Microsoft | Rol en el proyecto |
 |---|---|---|
-| Next.js 16 | **Azure Static Web Apps** | Servicio nativo para apps Next.js con SSR y despliegue directo desde GitHub |
-| React 19 | React 19 | Es la misma librería — React no es de Microsoft, no se reemplaza |
-| TypeScript | TypeScript | TypeScript **sí** es de Microsoft — ya está cubierto |
-| Tailwind CSS | Tailwind CSS | CSS utility, agnóstico al proveedor — no se reemplaza |
-| Supabase (PostgreSQL + Auth + Storage) | **Azure SQL Database** + **Microsoft Entra ID** + **Azure Blob Storage** | Tres servicios separados, equivalentes en función |
-| Google Gemini | **Azure OpenAI Service (GPT-4o)** | Modelo equivalente en capacidad, gestionado por Microsoft |
+| **TypeScript 5** | TypeScript (Microsoft) | Lenguaje principal del frontend y backend |
+| **Azure Static Web Apps** | Microsoft Azure | Hosting con SSR y despliegue desde GitHub |
+| **Azure SQL Database** | Microsoft Azure | Base de datos relacional principal |
+| **Microsoft Entra ID** | Microsoft Azure | Autenticación JWT y gestión de identidades |
+| **Azure Blob Storage** | Microsoft Azure | Almacenamiento de archivos y recursos |
+| **Azure OpenAI Service** | Microsoft Azure | IA generativa (GPT-4o): retroalimentación y reportes CTE |
 
-### Stack ideal para Microsoft
+### Stack Microsoft
 
 <div align="center">
 
 | | | |
 |:---:|:---:|:---:|
-| **Next.js 16** | **TypeScript** | **Azure SQL** |
-| **React 19** | **Tailwind CSS** | **Azure OpenAI** |
+| **TypeScript** | **Azure Static Web Apps** | **Azure SQL Database** |
+| **Microsoft Entra ID** | **Azure Blob Storage** | **Azure OpenAI Service** |
 
 </div>
 
@@ -148,8 +146,10 @@ aplicación y alimenta tanto el motor de repetición espaciada como los reportes
 
 ### Requisitos
 - Node.js 20+
-- Un proyecto de Supabase (o Azure SQL + Entra ID en el escenario Microsoft)
-- Una API key de IA (Gemini, o Azure OpenAI en el escenario Microsoft)
+- Una instancia de **Azure SQL Database** con el esquema aplicado
+- Credenciales de **Microsoft Entra ID** (Client ID, Tenant ID, Client Secret)
+- Un recurso de **Azure OpenAI Service** con GPT-4o desplegado
+- Una cuenta de **Azure Blob Storage** para archivos
 
 ### Instalación
 
@@ -164,21 +164,32 @@ npm install
 Crea `semilla/.env.local`:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=     # solo servidor — nunca al cliente
-AI_API_KEY=                    # https://aistudio.google.com/apikey
+# Azure SQL Database
+AZURE_SQL_CONNECTION_STRING=
+
+# Microsoft Entra ID (autenticación)
+ENTRAID_CLIENT_ID=
+ENTRAID_TENANT_ID=
+ENTRAID_CLIENT_SECRET=         # solo servidor — nunca al cliente
+
+# Azure Blob Storage
+AZURE_STORAGE_ACCOUNT_NAME=
+AZURE_STORAGE_ACCOUNT_KEY=     # solo servidor — nunca al cliente
+
+# Azure OpenAI Service
+AZURE_OPENAI_ENDPOINT=
+AZURE_OPENAI_API_KEY=          # solo servidor — nunca al cliente
+AZURE_OPENAI_DEPLOYMENT=       # nombre del despliegue GPT-4o
 ```
 
-> ⚠️ Las variables `NEXT_PUBLIC_*` se exponen al navegador. La
-> `SUPABASE_SERVICE_ROLE_KEY` y la `AI_API_KEY` viven **solo en el servidor**.
+> ⚠️ Las variables de cuentas y claves viven **solo en el servidor** y nunca deben exponerse al navegador.
 
 ### Base de datos
 
-Aplica el esquema a tu proyecto de Supabase/PostgreSQL:
+Aplica el esquema a tu instancia de **Azure SQL Database**:
 
 ```bash
-psql "$DATABASE_URL" -f ../schema.sql
+sqlcmd -S <servidor>.database.windows.net -d <base_de_datos> -U <usuario> -P <contraseña> -i ../schema.sql
 ```
 
 ### Desarrollo
@@ -194,8 +205,9 @@ npm run lint     # eslint (eslint-config-next)
 
 ## 🤖 Estilo de la IA
 
-El wrapper de IA vive en [`semilla/lib/ai.ts`](semilla/lib/ai.ts). El modelo es
-configurable desde una constante al inicio del archivo.
+El wrapper de IA vive en [`semilla/lib/ai.ts`](semilla/lib/ai.ts) y consume
+**Azure OpenAI Service** con el modelo **GPT-4o**. El deployment es configurable
+desde una constante al inicio del archivo.
 
 - **Retroalimentación al alumno** — cálida, tutea, nunca penaliza el error; evita
   palabras como «mal» o «incorrecto», y cierra con una invitación a reintentar
@@ -207,11 +219,10 @@ configurable desde una constante al inicio del archivo.
 
 ## 🔒 Seguridad
 
-- La autorización real son las **políticas RLS de PostgreSQL**; el guard de
-  `proxy.ts` es solo UX, no seguridad.
-- Toda tabla sensible (`alumno`, `respuesta_alumno`, `grupo`, `reporte`) lleva RLS.
+- La autorización real son las **políticas de seguridad de Azure SQL** y los permisos de **Microsoft Entra ID**; el guard de `proxy.ts` es solo UX, no seguridad.
+- Toda tabla sensible (`alumno`, `respuesta_alumno`, `grupo`, `reporte`) tiene restricciones de acceso por rol.
 - El dashboard docente muestra **agregados sin nombres**.
-- Los datos personales se procesan únicamente en servidor con la _service role key_.
+- Los datos personales se procesan únicamente en servidor con credenciales de Entra ID de solo-servidor.
 
 ---
 
