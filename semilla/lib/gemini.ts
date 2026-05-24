@@ -61,6 +61,7 @@ export async function generarRetroalimentacion(
     }],
     generationConfig: {
       temperature: 0.7,
+      maxOutputTokens: 512,
     },
     safetySettings: [
       { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },

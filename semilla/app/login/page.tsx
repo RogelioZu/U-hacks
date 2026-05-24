@@ -126,6 +126,18 @@ export default function LoginPage() {
             Accede con tu cuenta institucional para continuar.
           </p>
 
+          <div className="mt-4 p-3 rounded-lg border text-sm" style={{ background: "var(--s-indigo-lt)", borderColor: "var(--s-indigo)", color: "var(--s-navy)" }}>
+            <p className="font-semibold mb-1">Cuentas de demostración:</p>
+            <ul className="space-y-1">
+              <li>
+                <span className="font-medium">Alumno:</span> luis_mtz@alumno.semilla.edu <span className="opacity-70">(Clave: 1234)</span>
+              </li>
+              <li>
+                <span className="font-medium">Docente:</span> rogelio_zga@docente.semilla.edu <span className="opacity-70">(Clave: 1234)</span>
+              </li>
+            </ul>
+          </div>
+
           <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
             <div>
               <label
