@@ -1,27 +1,14 @@
-<<<<<<< HEAD
 // Wrapper central de IA para Nexo.
 // Usa la API de Google Gemini (AI Studio) en lugar de OpenAI.
 // Modelo único configurable: cámbialo aquí y aplica a toda la app.
-=======
-import { GoogleGenAI } from "@google/genai";
-
-// Wrapper central de IA para Nexo (Persona 3 — IA y reportes).
-// Usa Google Gemini (AI Studio). Modelo único configurable aquí.
->>>>>>> 8085e20fb589e4ff9340576a637cdd1bd218f978
 const MODELO = "gemini-2.5-flash";
 
 const apiKey = process.env.GEMINI_API_KEY;
 
-<<<<<<< HEAD
 // Cliente perezoso: no rompe el build si la key aún no está configurada;
 // solo falla cuando realmente se invoca a la IA en el servidor.
 let _ai: any | null = null;
 async function getClient(): Promise<any> {
-=======
-// Cliente perezoso: no rompe el build si la key no está; solo falla al invocarse.
-let _ai: GoogleGenAI | null = null;
-function getClient(): GoogleGenAI {
->>>>>>> 8085e20fb589e4ff9340576a637cdd1bd218f978
   if (!apiKey) {
     throw new Error(
       "Falta GEMINI_API_KEY. Consíguela en https://aistudio.google.com/apikey y agrégala a .env.local",
