@@ -67,7 +67,8 @@ export async function GET() {
           respuesta_incorrecta_2,
           error_distractor_2,
           pista_distractor_2,
-          respuesta_incorrecta_3
+          respuesta_incorrecta_3,
+          pista_distractor_3
         )
       `,
       )

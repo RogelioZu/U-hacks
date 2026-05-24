@@ -19,6 +19,8 @@ interface Pregunta {
   correcta: string;
   errorDistractor: string;
   pistaDistractor: string;
+  /** Mapa texto-opción → pista pedagógica (para el fallback cuando la IA falla). */
+  pistasPorTexto: Record<string, string>;
 }
 
 type EstadoRespuesta = "pendiente" | "correcta" | "incorrecta";
@@ -26,6 +28,16 @@ type EstadoRespuesta = "pendiente" | "correcta" | "incorrecta";
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
+
+/** Mezcla un arreglo usando Fisher-Yates con Math.random() — verdaderamente aleatorio. */
+function mezclarFisherYates<T>(arr: T[]): T[] {
+  const copia = [...arr];
+  for (let i = copia.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copia[i], copia[j]] = [copia[j], copia[i]];
+  }
+  return copia;
+}
 
 function mapearPregunta(
   pa: {
@@ -41,9 +53,11 @@ function mapearPregunta(
       error_distractor_2: string;
       pista_distractor_2: string;
       respuesta_incorrecta_3: string | null;
+      pista_distractor_3: string | null;
     };
   },
-  indice: number
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _indice: number
 ): Pregunta {
   const p = pa.pregunta;
 
@@ -56,13 +70,23 @@ function mapearPregunta(
       : []),
   ];
 
-  const mezcladas = opciones
-    .map((op, i) => ({ op, sort: (i + indice * 3) % opciones.length }))
-    .sort((a, b) => a.sort - b.sort)
-    .map(({ op }, i) => ({ ...op, clave: ["A", "B", "C", "D"][i] }));
+  // Bug #5 fix: mezcla verdaderamente aleatoria con Fisher-Yates
+  const mezcladas = mezclarFisherYates(opciones).map((op, i) => ({
+    ...op,
+    clave: ["A", "B", "C", "D"][i],
+  }));
 
   const claveCorrecta =
     mezcladas.find((o) => o.texto === p.respuesta_correcta)?.clave ?? "A";
+
+  // Bug #6 fix: guardar la pista correcta por texto de opción para usarla en el fallback
+  const pistasPorTexto: Record<string, string> = {
+    [p.respuesta_incorrecta_1]: p.pista_distractor_1 ?? "",
+    [p.respuesta_incorrecta_2]: p.pista_distractor_2 ?? "",
+    ...(p.respuesta_incorrecta_3 && p.pista_distractor_3
+      ? { [p.respuesta_incorrecta_3]: p.pista_distractor_3 }
+      : {}),
+  };
 
   return {
     id: p.id,
@@ -72,6 +96,7 @@ function mapearPregunta(
     correcta: claveCorrecta,
     errorDistractor: p.error_distractor_1,
     pistaDistractor: p.pista_distractor_1,
+    pistasPorTexto,
   };
 }
 
@@ -93,6 +118,7 @@ const PREGUNTAS_DEMO: Pregunta[] = [
     correcta: "B",
     errorDistractor: "Sumar los numeradores sin convertir al mismo denominador",
     pistaDistractor: "Recuerda que antes de sumar fracciones necesitas un denominador común.",
+    pistasPorTexto: {},
   },
   {
     id: -2,
@@ -107,6 +133,7 @@ const PREGUNTAS_DEMO: Pregunta[] = [
     correcta: "C",
     errorDistractor: "Dividir por 40 y no multiplicar por 100 correctamente",
     pistaDistractor: "Convierte la fracción en porcentaje multiplicando por 100.",
+    pistasPorTexto: {},
   },
   {
     id: -3,
@@ -121,6 +148,7 @@ const PREGUNTAS_DEMO: Pregunta[] = [
     correcta: "A",
     errorDistractor: "Pensar que 0.25 equivale a 2/5 en lugar de 1/4",
     pistaDistractor: "Haz la división 25 ÷ 100 y busca la fracción equivalente.",
+    pistasPorTexto: {},
   },
 ];
 
@@ -272,7 +300,10 @@ export default function AlumnoQuizPage() {
       setFeedback(datos.retroalimentacion ?? "Usa la pista y vuelve a intentarlo.");
       setMensaje("Casi. Lee la orientación y vuelve a intentar.");
     } catch {
-      setFeedback(`Pista: ${preguntaActual.pistaDistractor}`);
+      // Bug #6 fix: usar la pista del distractor elegido, no siempre el primero
+      const pistaFallback =
+        preguntaActual.pistasPorTexto[respuestaTexto] ?? preguntaActual.pistaDistractor;
+      setFeedback(`Pista: ${pistaFallback}`);
       setMensaje("Tu respuesta no fue correcta. Vuelve a intentar.");
     } finally {
       setProcesando(false);

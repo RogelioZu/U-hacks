@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { ErrorApi } from "@/types/semilla";
 
 interface Params {
@@ -33,8 +34,14 @@ export async function PATCH(
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  const rol = (user.user_metadata?.rol as string | undefined) ?? "";
-  if (rol !== "docente" && rol !== "directivo") {
+  // Bug #3 fix: incluir prefijos semilla.* para no bloquear a docentes con ese rol
+  const rol = (user.user_metadata?.rol as string | undefined)?.trim().toLowerCase() ?? "";
+  if (
+    rol !== "docente" &&
+    rol !== "directivo" &&
+    rol !== "semilla.docente" &&
+    rol !== "semilla.directivo"
+  ) {
     return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
   }
 
@@ -63,8 +70,13 @@ export async function PATCH(
     );
   }
 
+  // Bug #4 fix: usar admin client para operaciones DB.
+  // El anon client puede ser bloqueado por RLS en las tablas profesor/reporte;
+  // el admin client bypasea RLS y hacemos verificación manual de propiedad.
+  const admin = createSupabaseAdminClient();
+
   // ── 3. Obtener id del profesor ─────────────────────────────────────
-  const { data: profesor } = await supabaseAuth
+  const { data: profesor } = await admin
     .from("profesor")
     .select("id")
     .eq("auth_user_id", user.id)
@@ -78,8 +90,7 @@ export async function PATCH(
   }
 
   // ── 4. Verificar que el reporte pertenece a este docente ──────────
-  // RLS ya lo bloquea en Supabase, pero verificamos explícitamente
-  const { data: reporteActual } = await supabaseAuth
+  const { data: reporteActual } = await admin
     .from("reporte")
     .select("id, estado, docente_id")
     .eq("id", reporteId)
@@ -87,6 +98,11 @@ export async function PATCH(
 
   if (!reporteActual) {
     return NextResponse.json({ error: "Reporte no encontrado" }, { status: 404 });
+  }
+
+  // Verificación manual de propiedad (el admin bypasa RLS)
+  if (reporteActual.docente_id !== profesor.id) {
+    return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
   }
 
   if (reporteActual.estado === "firmado") {
@@ -97,7 +113,7 @@ export async function PATCH(
   }
 
   // ── 5. Actualizar el reporte ─────────────────────────────────────────
-  const { error: errorActualizar } = await supabaseAuth
+  const { error: errorActualizar } = await admin
     .from("reporte")
     .update({
       contenido,
@@ -115,3 +131,4 @@ export async function PATCH(
 
   return NextResponse.json({ ok: true }, { status: 200 });
 }
+

@@ -13,7 +13,7 @@ export async function guardarTemas(
   grupoId: number,
   semanaId: number,
   temaIds: number[],
-): Promise<{ exito: boolean; error?: string }> {
+): Promise<{ exito: boolean; error?: string; redirectUrl?: string }> {
   const supabase = createSupabaseAdminClient();
 
   // Eliminar selección anterior de esta semana/grupo
