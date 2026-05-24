@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseAdminClient } from "@/lib/supabase/server";
 import SelectorTemas from "@/components/docente/SelectorTemas";
 import type { Materia, Tema } from "@/types/semilla";
 
@@ -19,17 +19,32 @@ export default async function PaginaConfigurar() {
 
   if (!user) redirect("/login");
 
-  const rol = (user.user_metadata?.rol as string | undefined) ?? "";
-  if (rol !== "docente" && rol !== "directivo") redirect("/acceso-denegado");
+  const rolNorm = (user.user_metadata?.rol as string | undefined)?.trim().toLowerCase() ?? "";
+  if (rolNorm !== "docente" && rolNorm !== "directivo" && rolNorm !== "semilla.docente" && rolNorm !== "semilla.directivo") redirect("/acceso-denegado");
 
-  // ── Obtener grupo del docente ────────────────────────────────────────
-  const { data: profesor } = await supabase
+  // Admin client bypasea RLS — necesario porque las políticas RLS
+  // de la tabla profesor pueden bloquear la lectura con anon key.
+  const admin = createSupabaseAdminClient();
+
+  // ── Obtener profesor y su grupo ───────────────────────────────────────
+  const { data: profesor } = await admin
     .from("profesor")
-    .select("id, grupo_id")
+    .select("id")
     .eq("auth_user_id", user.id)
     .single();
 
-  if (!profesor?.grupo_id) {
+  const { data: grupoData } = profesor
+    ? await admin
+        .from("grupo")
+        .select("id")
+        .eq("profesor_id", profesor.id)
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+
+  const grupoId = grupoData?.id as number | undefined;
+
+  if (!grupoId) {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-bold text-slate-800">Configurar semana</h1>
@@ -40,12 +55,14 @@ export default async function PaginaConfigurar() {
     );
   }
 
-  // ── Semana activa ────────────────────────────────────────────────────
-  const { data: semanaActiva } = await supabase
+  // ── Semana activa del grupo ──────────────────────────────────────────
+  const { data: semanaActiva } = await admin
     .from("semana")
-    .select("id, numero")
-    .eq("activa", true)
-    .single();
+    .select("id, numero_semana")
+    .eq("grupo_id", grupoId)
+    .eq("estado", "activa")
+    .limit(1)
+    .maybeSingle();
 
   if (!semanaActiva) {
     return (
@@ -62,36 +79,33 @@ export default async function PaginaConfigurar() {
   }
 
   // ── Cargar catálogo de materias y temas desde Supabase ───────────────
-  const { data: materiasData } = await supabase
+  const { data: materiasData } = await admin
     .from("materia")
-    .select("id, nombre, clave")
+    .select("id, nombre")
     .order("nombre");
 
-  const { data: temasData } = await supabase
+  const { data: temasData } = await admin
     .from("tema")
-    .select("id, materia_id, nombre, bloque")
-    .order("bloque")
+    .select("id, materia_id, nombre")
     .order("nombre");
 
-  const materias: Materia[] = (materiasData ?? []).map((m) => ({
+  const materias: Omit<Materia, "clave">[] = (materiasData ?? []).map((m) => ({
     id: m.id,
     nombre: m.nombre,
-    clave: m.clave,
   }));
 
-  const temas: Tema[] = (temasData ?? []).map((t) => ({
+  const temas: Omit<Tema, "bloque">[] = (temasData ?? []).map((t) => ({
     id: t.id,
     materia_id: t.materia_id,
     nombre: t.nombre,
-    bloque: t.bloque,
   }));
 
   // ── Temas ya seleccionados para esta semana / grupo ──────────────────
-  const { data: seleccionData } = await supabase
+  const { data: seleccionData } = await admin
     .from("semana_materia")
     .select("tema_id")
     .eq("semana_id", semanaActiva.id)
-    .eq("grupo_id", profesor.grupo_id);
+    .eq("grupo_id", grupoId);
 
   const seleccionActual = (seleccionData ?? []).map((s) => s.tema_id as number);
 
@@ -101,7 +115,7 @@ export default async function PaginaConfigurar() {
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Configurar semana</h1>
         <p className="mt-0.5 text-sm text-slate-500">
-          Semana {semanaActiva.numero} · Elige los temas que evaluarás esta semana
+          Semana {semanaActiva.numero_semana} · Elige los temas que evaluarás esta semana
         </p>
       </div>
 
@@ -127,7 +141,7 @@ export default async function PaginaConfigurar() {
           materias={materias}
           temas={temas}
           semanaId={semanaActiva.id}
-          grupoId={profesor.grupo_id}
+          grupoId={grupoId}
           seleccionActual={seleccionActual}
         />
       )}

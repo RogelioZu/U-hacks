@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseAdminClient } from "@/lib/supabase/server";
 import DiagnosticoGrupo from "@/components/docente/DiagnosticoGrupo";
 import AlertaRiesgo from "@/components/docente/AlertaRiesgo";
 import type { DiagnosticoAlumno } from "@/types/semilla";
@@ -25,14 +25,42 @@ export default async function PaginaTablero() {
   const rol = (user.user_metadata?.rol as string | undefined)?.trim().toLowerCase() ?? "";
   if (rol !== "docente" && rol !== "directivo" && rol !== "semilla.docente" && rol !== "semilla.directivo") redirect("/acceso-denegado");
 
-  // ── Obtener el grupo del docente autenticado ──────────────────────────
-  const { data: profesor } = await supabase
+  // Admin client bypasea RLS — necesario porque las políticas RLS
+  // de la tabla profesor pueden bloquear la lectura con anon key.
+  const admin = createSupabaseAdminClient();
+
+  // ── Obtener el profesor autenticado ────────────────────────────────────
+  const { data: profesor } = await admin
     .from("profesor")
-    .select("id, grupo_id, grupo:grupo_id(id, nombre, grado)")
+    .select("id")
     .eq("auth_user_id", user.id)
     .single();
 
-  if (!profesor?.grupo_id) {
+  if (!profesor) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold" style={{ color: "var(--s-navy)" }}>Tablero docente</h1>
+        <div
+          className="rounded-2xl border p-6 text-center"
+          style={{ background: "#FFFBEB", borderColor: "#FDE68A" }}
+        >
+          <p className="font-medium" style={{ color: "#92400E" }}>
+            No se encontró tu registro de profesor.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Obtener el grupo del docente (grupo.profesor_id = profesor.id) ────
+  const { data: grupo } = await admin
+    .from("grupo")
+    .select("id, nombre, grado")
+    .eq("profesor_id", profesor.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (!grupo) {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-bold" style={{ color: "var(--s-navy)" }}>Tablero docente</h1>
@@ -51,20 +79,20 @@ export default async function PaginaTablero() {
     );
   }
 
-  const grupo = (profesor.grupo as unknown) as { id: number; nombre: string; grado: number } | null;
-
-  // ── Obtener la semana activa ──────────────────────────────────────────
-  const { data: semanaActiva } = await supabase
+  // ── Obtener la semana activa del grupo ─────────────────────────────────
+  const { data: semanaActiva } = await admin
     .from("semana")
-    .select("id, numero, fecha_inicio, fecha_fin")
-    .eq("activa", true)
-    .single();
+    .select("id, numero_semana, fecha_inicio, fecha_fin")
+    .eq("grupo_id", grupo.id)
+    .eq("estado", "activa")
+    .limit(1)
+    .maybeSingle();
 
   // ── Obtener diagnósticos del grupo para la semana activa ─────────────
   let diagnosticos: DiagnosticoAlumno[] = [];
 
   if (semanaActiva) {
-    const { data: datosDiag } = await supabase
+    const { data: datosDiag } = await admin
       .from("diagnostico_alumno")
       .select(
         `
@@ -78,7 +106,7 @@ export default async function PaginaTablero() {
         materia:materia_id(nombre)
       `,
       )
-      .eq("grupo_id", profesor.grupo_id)
+      .eq("grupo_id", grupo.id)
       .eq("semana_id", semanaActiva.id);
 
     diagnosticos = (datosDiag ?? []).map((d, indice) => ({
@@ -119,7 +147,7 @@ export default async function PaginaTablero() {
           </h1>
           {grupo && (
             <p className="mt-0.5 text-sm text-slate-500">
-              {grupo.nombre} · {semanaActiva ? `Semana ${semanaActiva.numero}` : "Sin semana activa"}
+              {grupo.nombre} · {semanaActiva ? `Semana ${semanaActiva.numero_semana}` : "Sin semana activa"}
             </p>
           )}
         </div>
@@ -127,7 +155,7 @@ export default async function PaginaTablero() {
         {/* Acciones rápidas */}
         <div className="flex gap-2">
           <Link
-            href="/docente/configurar"
+            href="/configurar"
             id="btn-ir-configurar"
             className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 active:scale-95"
           >
@@ -139,7 +167,7 @@ export default async function PaginaTablero() {
           </Link>
 
           <Link
-            href="/docente/reporte"
+            href="/reporte"
             id="btn-ir-reporte"
             className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95"
           >

@@ -1,4 +1,7 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  createSupabaseServerClient,
+  createSupabaseAdminClient,
+} from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
@@ -8,11 +11,8 @@ export const metadata: Metadata = {
 
 /**
  * Página raíz — redirige según el rol del usuario autenticado.
- * Sin sesión       → /login
- * alumno           → /alumno
- * docente/directivo → /tablero
- * admin_zonal      → /admin (futuro)
- * sin rol          → /perfil (completar registro)
+ * Si el usuario no tiene rol en user_metadata pero existe en la tabla
+ * `profesor` o `alumno`, se lo asigna automáticamente y redirige.
  */
 export default async function HomePage() {
   const supabase = await createSupabaseServerClient();
@@ -24,10 +24,48 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  const rol = (user.user_metadata?.rol as string | undefined)
+  let rol = (user.user_metadata?.rol as string | undefined)
     ?.trim()
     .toLowerCase();
 
+  // ── Auto-detección de rol desde la BD ──────────────────────────────
+  // Si el usuario no tiene rol en metadata pero sí existe en las tablas
+  // `profesor` o `alumno`, le asignamos el rol automáticamente.
+  if (!rol) {
+    const admin = createSupabaseAdminClient();
+
+    // ¿Es profesor?
+    const { data: profesor } = await admin
+      .from("profesor")
+      .select("id")
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+
+    if (profesor) {
+      const nuevoRol = "docente";
+      await admin.auth.admin.updateUserById(user.id, {
+        user_metadata: { ...(user.user_metadata ?? {}), rol: nuevoRol },
+      });
+      rol = nuevoRol;
+    } else {
+      // ¿Es alumno?
+      const { data: alumno } = await admin
+        .from("alumno")
+        .select("id")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
+
+      if (alumno) {
+        const nuevoRol = "alumno";
+        await admin.auth.admin.updateUserById(user.id, {
+          user_metadata: { ...(user.user_metadata ?? {}), rol: nuevoRol },
+        });
+        rol = nuevoRol;
+      }
+    }
+  }
+
+  // ── Redirección por rol ────────────────────────────────────────────
   if (!rol) {
     redirect("/perfil");
   }

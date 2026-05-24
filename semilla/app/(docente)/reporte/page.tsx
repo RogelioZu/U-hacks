@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseAdminClient } from "@/lib/supabase/server";
 import ReporteCTEEditor from "@/components/docente/ReporteCTEEditor";
 
 export const metadata: Metadata = {
-  title: "Reporte CTE — Nexo Docente",
+  title: "Reporte CTE — Semilla Docente",
   description:
     "Genera, revisa y firma el reporte del Consejo Técnico Escolar de tu grupo con apoyo de IA.",
 };
@@ -18,17 +18,29 @@ export default async function PaginaReporte() {
 
   if (!user) redirect("/login");
 
-  const rol = (user.user_metadata?.rol as string | undefined) ?? "";
-  if (rol !== "docente" && rol !== "directivo") redirect("/acceso-denegado");
+  const rol = (user.user_metadata?.rol as string | undefined)?.trim().toLowerCase() ?? "";
+  if (rol !== "docente" && rol !== "directivo" && rol !== "semilla.docente" && rol !== "semilla.directivo") redirect("/acceso-denegado");
 
-  // ── Obtener grupo del docente ────────────────────────────────────────
-  const { data: profesor } = await supabase
+  // Admin client bypasea RLS
+  const admin = createSupabaseAdminClient();
+
+  // ── Obtener profesor y su grupo ────────────────────────────────────────
+  const { data: profesor } = await admin
     .from("profesor")
-    .select("id, grupo_id, grupo:grupo_id(id, nombre)")
+    .select("id")
     .eq("auth_user_id", user.id)
     .single();
 
-  if (!profesor?.grupo_id) {
+  const { data: grupo } = profesor
+    ? await admin
+        .from("grupo")
+        .select("id, nombre")
+        .eq("profesor_id", profesor.id)
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+
+  if (!grupo) {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-bold text-slate-800">Reporte CTE</h1>
@@ -39,14 +51,14 @@ export default async function PaginaReporte() {
     );
   }
 
-  const grupo = (profesor.grupo as unknown) as { id: number; nombre: string } | null;
-
-  // ── Semana activa ────────────────────────────────────────────────────
-  const { data: semanaActiva } = await supabase
+  // ── Semana activa del grupo ──────────────────────────────────────────
+  const { data: semanaActiva } = await admin
     .from("semana")
-    .select("id, numero")
-    .eq("activa", true)
-    .single();
+    .select("id, numero_semana")
+    .eq("grupo_id", grupo.id)
+    .eq("estado", "activa")
+    .limit(1)
+    .maybeSingle();
 
   if (!semanaActiva) {
     return (
@@ -63,10 +75,10 @@ export default async function PaginaReporte() {
   }
 
   // ── Buscar borrador existente para esta semana/grupo ─────────────────
-  const { data: reporteExistente } = await supabase
+  const { data: reporteExistente } = await admin
     .from("reporte")
     .select("id, contenido, estado, firmado_at")
-    .eq("grupo_id", profesor.grupo_id)
+    .eq("grupo_id", grupo.id)
     .eq("semana_id", semanaActiva.id)
     .order("generado_at", { ascending: false })
     .limit(1)
@@ -87,7 +99,7 @@ export default async function PaginaReporte() {
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Reporte CTE</h1>
         <p className="mt-0.5 text-sm text-slate-500">
-          {grupo?.nombre} · Semana {semanaActiva.numero} ·{" "}
+          {grupo.nombre} · Semana {semanaActiva.numero_semana} ·{" "}
           {reporteInicial?.estado === "firmado"
             ? "Reporte firmado"
             : reporteInicial
@@ -108,7 +120,7 @@ export default async function PaginaReporte() {
             <p className="text-sm font-medium text-slate-700">¿Qué es el reporte CTE?</p>
             <p className="mt-0.5 text-xs text-slate-500">
               El Consejo Técnico Escolar (CTE) requiere un reporte mensual del avance del grupo.
-              Nexo genera un borrador institucional a partir del diagnóstico de la semana.
+              Semilla genera un borrador institucional a partir del diagnóstico de la semana.
               <strong className="text-slate-700"> Tú lo revisas, editas y firmas.</strong>
             </p>
           </div>
@@ -117,7 +129,7 @@ export default async function PaginaReporte() {
 
       {/* Editor principal: generación, edición y firma */}
       <ReporteCTEEditor
-        grupoId={profesor.grupo_id}
+        grupoId={grupo.id}
         semanaId={semanaActiva.id}
         reporteInicial={reporteInicial}
       />
