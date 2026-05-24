@@ -30,8 +30,8 @@ export async function POST(
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  const rol = (user.user_metadata?.rol as string | undefined) ?? "";
-  if (rol !== "docente" && rol !== "directivo") {
+  const rol = (user.user_metadata?.rol as string | undefined)?.trim().toLowerCase() ?? "";
+  if (rol !== "docente" && rol !== "directivo" && rol !== "semilla.docente" && rol !== "semilla.directivo") {
     return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
   }
 
@@ -84,7 +84,7 @@ export async function POST(
   // Datos de la semana
   const { data: semana, error: errorSemana } = await supabaseAdmin
     .from("semana")
-    .select("id, numero")
+    .select("id, numero_semana")
     .eq("id", semanaId)
     .single();
 
@@ -151,7 +151,7 @@ export async function POST(
   // ── 4. Generar reporte con IA ──────────────────────────────────────────
   const datosSemana: DatosSemana = {
     nombreGrupo: grupo.nombre,
-    numeroSemana: semana.numero,
+    numeroSemana: semana.numero_semana,
     temas: temas.length > 0 ? temas : ["Sin temas configurados"],
     totalAlumnos,
     pctDominio,

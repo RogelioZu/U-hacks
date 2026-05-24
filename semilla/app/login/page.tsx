@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-const supabase = createSupabaseBrowserClient();
-
 export default function LoginPage() {
   const router = useRouter();
+  // Instanciar dentro del componente para evitar problemas de hidratación en Next.js
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +26,15 @@ export default function LoginPage() {
     setLoading(false);
 
     if (error) {
-      setError("Correo o contraseña incorrectos. Intenta de nuevo.");
+      // Log real para depuración — no se muestra al usuario
+      console.error("[Supabase Auth error]", error.message, error.status);
+      setError(
+        error.message.includes("Email not confirmed")
+          ? "Tu correo aún no ha sido confirmado. Revisa tu bandeja de entrada."
+          : error.message.includes("Invalid login credentials")
+          ? "Correo o contraseña incorrectos."
+          : `Error al iniciar sesión: ${error.message}`
+      );
       return;
     }
 
@@ -38,7 +46,7 @@ export default function LoginPage() {
       return;
     }
 
-    // Redirigir según rol
+    // Redirigir según rol — si no tiene rol, ir a "/" para auto-detección
     const rol = (data.user?.user_metadata?.rol as string | undefined)
       ?.trim()
       .toLowerCase();
@@ -50,8 +58,11 @@ export default function LoginPage() {
       rol === "semilla.directivo"
     ) {
       router.push("/tablero");
-    } else {
+    } else if (rol === "alumno" || rol === "semilla.alumno") {
       router.push("/alumno");
+    } else {
+      // Sin rol en metadata → ir a la raíz que auto-detecta desde la BD
+      router.push("/");
     }
   }
 
