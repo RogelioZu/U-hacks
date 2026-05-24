@@ -40,8 +40,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  // 3. Traer la pregunta y su mapeo pedagógico
-  const { data: pregunta, error } = await supabase
+  // 3. Traer la pregunta y su mapeo pedagógico (con admin client para evitar RLS)
+  const { createSupabaseAdminClient } = await import("@/lib/supabase/server");
+  const adminSupabase = createSupabaseAdminClient();
+  const { data: pregunta, error } = await adminSupabase
     .from("pregunta")
     .select(
       `texto_pregunta, respuesta_correcta,

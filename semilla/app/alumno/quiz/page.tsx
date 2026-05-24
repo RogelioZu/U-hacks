@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useCallback, useEffect, useState } from "react";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tipos
@@ -130,8 +129,6 @@ const PREGUNTAS_DEMO: Pregunta[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function AlumnoQuizPage() {
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
-
   const [preguntas, setPreguntas] = useState<Pregunta[]>([]);
   const [cargando, setCargando] = useState(true);
   const [modoDemo, setModoDemo] = useState(false);
@@ -148,92 +145,72 @@ export default function AlumnoQuizPage() {
 
   const preguntaActual = preguntas[indice];
 
-  // ── Cargar preguntas desde Supabase ──────────────────────────────────────
+  // ── Cargar preguntas desde la API del servidor (evita RLS) ───────────────
   useEffect(() => {
     let cancelado = false;
 
     (async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const res = await fetch("/api/quiz/preguntas");
+        const datos = await res.json();
+        console.log("[Quiz] Respuesta API:", datos.modo, "preguntas:", datos.preguntas?.length ?? 0);
 
-        if (!user) {
-          if (!cancelado) { setPreguntas(PREGUNTAS_DEMO); setModoDemo(true); setCargando(false); }
-          return;
+        if (cancelado) return;
+
+        if (datos.modo === "real" && datos.preguntas?.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const mapped = (datos.preguntas as any[]).map((pa, i) => mapearPregunta(pa, i));
+          setPreguntas(mapped);
+          setModoDemo(false);
+          setAlumnoId(datos.alumnoId);
+          setAplicacionId(datos.aplicacionId);
+          console.log("[Quiz] ✅ Modo REAL — alumnoId:", datos.alumnoId, "preguntas:", mapped.length);
+        } else {
+          setPreguntas(PREGUNTAS_DEMO);
+          setModoDemo(true);
+          if (datos.alumnoId) setAlumnoId(datos.alumnoId);
+          console.log("[Quiz] → Modo demo (alumnoId:", datos.alumnoId, ")");
         }
-
-        const { data: alumnoData } = await supabase
-          .from("alumno").select("id").eq("auth_user_id", user.id).single();
-
-        if (!alumnoData) {
-          if (!cancelado) { setPreguntas(PREGUNTAS_DEMO); setModoDemo(true); setCargando(false); }
-          return;
+      } catch (err) {
+        console.error("[Quiz] ❌ Error al cargar:", err);
+        if (!cancelado) {
+          setPreguntas(PREGUNTAS_DEMO);
+          setModoDemo(true);
         }
-
-        if (!cancelado) setAlumnoId(alumnoData.id);
-
-        const { data: alumnoGrupo } = await supabase
-          .from("alumno").select("grupo_id").eq("id", alumnoData.id).single();
-
-        const { data: aplicacion } = await supabase
-          .from("aplicacion").select("id")
-          .eq("grupo_id", alumnoGrupo?.grupo_id ?? 0)
-          .eq("estado", "activa")
-          .order("fecha_inicio", { ascending: false })
-          .limit(1).maybeSingle();
-
-        if (!aplicacion) {
-          if (!cancelado) { setPreguntas(PREGUNTAS_DEMO); setModoDemo(true); setCargando(false); }
-          return;
-        }
-
-        if (!cancelado) setAplicacionId(aplicacion.id);
-
-        const { data: preguntasAplicadas } = await supabase
-          .from("pregunta_aplicada")
-          .select(`
-            id,
-            pregunta:pregunta_id (
-              id, texto_pregunta, respuesta_correcta,
-              respuesta_incorrecta_1, error_distractor_1, pista_distractor_1,
-              respuesta_incorrecta_2, error_distractor_2, pista_distractor_2,
-              respuesta_incorrecta_3
-            )
-          `)
-          .eq("aplicacion_id", aplicacion.id)
-          .or(`alumno_id.is.null,alumno_id.eq.${alumnoData.id}`)
-          .order("orden");
-
-        if (!preguntasAplicadas || preguntasAplicadas.length === 0) {
-          if (!cancelado) { setPreguntas(PREGUNTAS_DEMO); setModoDemo(true); setCargando(false); }
-          return;
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mapped = (preguntasAplicadas as any[]).map((pa, i) => mapearPregunta(pa, i));
-
-        if (!cancelado) { setPreguntas(mapped); setModoDemo(false); setCargando(false); }
-      } catch {
-        if (!cancelado) { setPreguntas(PREGUNTAS_DEMO); setModoDemo(true); setCargando(false); }
+      } finally {
+        if (!cancelado) setCargando(false);
       }
     })();
 
     return () => { cancelado = true; };
-  }, [supabase]);
+  }, []);
 
-  // ── Guardar respuesta ─────────────────────────────────────────────────────
+  // ── Guardar respuesta (vía API del servidor para evitar problemas de RLS) ──
   const guardarRespuesta = useCallback(
     async (pregunta: Pregunta, clave: string, esCorrecta: boolean, tiempoSeg: number) => {
       if (modoDemo || !alumnoId || pregunta.pregunta_aplicada_id < 0) return;
-      await supabase.from("respuesta_alumno").insert({
-        alumno_id: alumnoId,
-        pregunta_aplicada_id: pregunta.pregunta_aplicada_id,
-        respuesta_seleccionada: pregunta.opciones.find((o) => o.clave === clave)?.texto ?? clave,
-        es_correcta: esCorrecta,
-        tiempo_respuesta_seg: tiempoSeg,
-        modo_entrega: "online",
-      });
+      try {
+        const res = await fetch("/api/quiz/respuesta", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            alumno_id: alumnoId,
+            pregunta_aplicada_id: pregunta.pregunta_aplicada_id,
+            respuesta_seleccionada:
+              pregunta.opciones.find((o) => o.clave === clave)?.texto ?? clave,
+            es_correcta: esCorrecta,
+            tiempo_respuesta_seg: tiempoSeg,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.error("[Quiz] Error al guardar respuesta:", err);
+        }
+      } catch (err) {
+        console.error("[Quiz] Falló la petición de guardado:", err);
+      }
     },
-    [modoDemo, alumnoId, supabase]
+    [modoDemo, alumnoId]
   );
 
   const [tiempoInicio, setTiempoInicio] = useState(Date.now());
