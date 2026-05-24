@@ -46,5 +46,10 @@ export async function guardarTemas(
     return { exito: false, error: "Error al guardar la selección de temas" };
   }
 
-  return { exito: true };
+  // Refrescar caché de la ruta de configuración para que se vean los cambios
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/configurar");
+
+  // Enviar instrucción de redirección al cliente
+  return { exito: true, redirectUrl: "/tablero" };
 }

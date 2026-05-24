@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { guardarTemas } from "@/app/(docente)/acciones";
 import type { Materia, Tema } from "@/types/semilla";
 
@@ -42,16 +43,26 @@ export default function SelectorTemas({
     );
   }
 
+  const router = useRouter();
+
   function handleGuardar() {
     setError(null);
     setGuardado(false);
 
     startTransition(async () => {
-      const resultado = await guardarTemas(grupoId, semanaId, seleccionados);
-      if (resultado.exito) {
-        setGuardado(true);
-      } else {
-        setError(resultado.error ?? "Error al guardar");
+      try {
+        const resultado = await guardarTemas(grupoId, semanaId, seleccionados);
+        if (resultado.exito) {
+          setGuardado(true);
+          if (resultado.redirectUrl) {
+            router.push(resultado.redirectUrl);
+          }
+        } else {
+          setError(resultado.error ?? "Error al guardar");
+        }
+      } catch (err) {
+        console.error("Error saving themes:", err);
+        setError("Error de conexión al guardar los temas.");
       }
     });
   }
