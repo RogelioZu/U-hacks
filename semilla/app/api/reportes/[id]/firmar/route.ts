@@ -92,7 +92,7 @@ export async function PATCH(
   // ── 4. Verificar que el reporte pertenece a este docente ──────────
   const { data: reporteActual } = await admin
     .from("reporte")
-    .select("id, estado, docente_id")
+    .select("id, estado, semana:semana_id(grupo:grupo_id(profesor_id))")
     .eq("id", reporteId)
     .single();
 
@@ -100,25 +100,25 @@ export async function PATCH(
     return NextResponse.json({ error: "Reporte no encontrado" }, { status: 404 });
   }
 
-  // Verificación manual de propiedad (el admin bypasa RLS)
-  if (reporteActual.docente_id !== profesor.id) {
+  // Verificación manual de propiedad
+  const profesorIdDelReporte = ((reporteActual.semana as any)?.grupo as any)?.profesor_id;
+  if (profesorIdDelReporte !== profesor.id) {
     return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
   }
 
-  if (reporteActual.estado === "firmado") {
+  if (reporteActual.estado === "enviado" || reporteActual.estado === "firmado") {
     return NextResponse.json(
       { error: "El reporte ya fue firmado y no puede modificarse" },
       { status: 409 },
     );
   }
 
-  // ── 5. Actualizar el reporte ─────────────────────────────────────────
   const { error: errorActualizar } = await admin
     .from("reporte")
     .update({
-      contenido,
-      estado: "firmado",
-      firmado_at: new Date().toISOString(),
+      contenido_ia: contenido,
+      estado: "enviado",
+      enviado_at: new Date().toISOString(),
     })
     .eq("id", reporteId);
 

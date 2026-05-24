@@ -90,6 +90,13 @@ export default async function PaginaTablero() {
   const semanaActiva = todasSemanas?.find((s) => s.estado === "activa");
   const semanasCerradas = todasSemanas?.filter((s) => s.estado === "cerrada") ?? [];
 
+  // ── Obtener alumnos del grupo ──────────────────────────────────────────
+  const { data: alumnosGrupo } = await admin
+    .from("alumno")
+    .select("id")
+    .eq("grupo_id", grupo.id);
+  const alumnoIds = (alumnosGrupo ?? []).map((a) => a.id);
+
   // ── Obtener todos los diagnósticos del grupo ───────────────────────────
   const { data: todosDiagnosticos } = await admin
     .from("diagnostico_alumno")
@@ -97,7 +104,6 @@ export default async function PaginaTablero() {
       `
       id,
       alumno_id,
-      grupo_id,
       semana_id,
       materia_id,
       nivel_dominio,
@@ -105,7 +111,7 @@ export default async function PaginaTablero() {
       materia:materia_id(nombre)
     `
     )
-    .eq("grupo_id", grupo.id);
+    .in("alumno_id", alumnoIds.length > 0 ? alumnoIds : [0]);
 
   // ── Obtener temas vistos históricamente ────────────────────────────────
   const { data: todosTemasVistos } = await admin
@@ -124,7 +130,7 @@ export default async function PaginaTablero() {
       id: d.id,
       alumno_id: d.alumno_id,
       alias: `Alumno ${String(indice + 1).padStart(2, "0")}`,
-      grupo_id: d.grupo_id,
+      grupo_id: grupo.id,
       semana_id: d.semana_id,
       materia_id: d.materia_id,
       materia_nombre:

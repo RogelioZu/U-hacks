@@ -87,13 +87,16 @@ export type EstadoReporte = "borrador" | "firmado";
 
 export interface Reporte {
   id: number;
-  grupo_id: number;
   semana_id: number;
-  contenido: string;
-  estado: EstadoReporte;
+  tipo_reporte: string;
+  storage_path: string | null;
+  total_alumnos: number;
+  total_respuestas: number;
+  pct_dominio: number;
+  contenido_ia: string;
+  estado: EstadoReporte | "enviado";
   generado_at: string;
-  firmado_at: string | null;
-  docente_id: number;
+  enviado_at: string | null;
 }
 
 // ────────────────────────────────────────────────────────

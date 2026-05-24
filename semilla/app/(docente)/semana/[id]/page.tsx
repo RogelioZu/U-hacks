@@ -39,26 +39,32 @@ export default async function PaginaDetalleSemana(props: { params: Promise<{ id:
     .eq("id", semana.grupo_id)
     .single();
 
+  const { data: alumnosData } = await admin
+    .from("alumno")
+    .select("id")
+    .eq("grupo_id", semana.grupo_id);
+  const alumnoIds = (alumnosData ?? []).map(a => a.id);
+
   // Obtener diagnósticos
   const { data: datosDiag } = await admin
     .from("diagnostico_alumno")
     .select(`
       id,
       alumno_id,
-      grupo_id,
       semana_id,
       materia_id,
       nivel_dominio,
       requiere_repaso,
       materia:materia_id(nombre)
     `)
+    .in("alumno_id", alumnoIds.length > 0 ? alumnoIds : [0])
     .eq("semana_id", semanaId);
 
   const diagnosticos: DiagnosticoAlumno[] = (datosDiag ?? []).map((d, indice) => ({
     id: d.id,
     alumno_id: d.alumno_id,
     alias: `Alumno ${String(indice + 1).padStart(2, "0")}`,
-    grupo_id: d.grupo_id,
+    grupo_id: semana.grupo_id,
     semana_id: d.semana_id,
     materia_id: d.materia_id,
     materia_nombre: ((d.materia as unknown) as { nombre: string } | null)?.nombre ?? "—",

@@ -75,21 +75,24 @@ export default async function PaginaReporte() {
   }
 
   // ── Buscar borrador existente para esta semana/grupo ─────────────────
-  const { data: reporteExistente } = await admin
+  const { data: reporteExistente, error: errorRep } = await admin
     .from("reporte")
-    .select("id, contenido, estado, firmado_at")
-    .eq("grupo_id", grupo.id)
+    .select("id, contenido_ia, estado, enviado_at")
     .eq("semana_id", semanaActiva.id)
     .order("generado_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
+  if (errorRep) {
+    console.error("[reporte/page] Error GET reporte:", errorRep);
+  }
+
   const reporteInicial = reporteExistente
     ? {
         id: reporteExistente.id as number,
-        contenido: reporteExistente.contenido as string,
-        estado: reporteExistente.estado as string,
-        firmado_at: reporteExistente.firmado_at as string | null,
+        contenido: reporteExistente.contenido_ia as string,
+        estado: (reporteExistente.estado === "enviado" ? "firmado" : "borrador") as string,
+        firmado_at: reporteExistente.enviado_at as string | null,
       }
     : null;
 

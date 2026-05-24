@@ -113,16 +113,23 @@ export async function POST(
     (sm) => ((sm.tema as unknown) as { id: number; nombre: string } | null)?.nombre ?? "",
   );
 
+  const { data: alumnosData } = await supabaseAdmin
+    .from("alumno")
+    .select("id")
+    .eq("grupo_id", grupoId);
+  const alumnoIds = (alumnosData ?? []).map(a => a.id);
+
   // Diagnósticos del grupo para esa semana
   const { data: diagnosticos, error: errorDiag } = await supabaseAdmin
     .from("diagnostico_alumno")
     .select("id, nivel_dominio, requiere_repaso")
-    .eq("grupo_id", grupoId)
+    .in("alumno_id", alumnoIds.length > 0 ? alumnoIds : [0])
     .eq("semana_id", semanaId);
 
   if (errorDiag) {
+    console.error("[reportes/generar] Error diagnosticos:", errorDiag);
     return NextResponse.json(
-      { error: "Error al consultar diagnósticos" },
+      { error: `Error al consultar diagnósticos: ${errorDiag.message}` },
       { status: 500 },
     );
   }
@@ -140,13 +147,56 @@ export async function POST(
             100,
         );
 
-  // Errores frecuentes: alumnos con nivel_dominio 0 o 1
-  const erroresFrecuentes =
-    totalAlumnos > 0
-      ? [
-          `${(diagnosticos ?? []).filter((d) => d.nivel_dominio <= 1).length} alumnos con dominio insuficiente`,
-        ]
-      : ["Sin datos de errores frecuentes"];
+  // ── Buscar aplicaciones de la semana ───────────────────────────────────
+  const { data: aplicaciones } = await supabaseAdmin
+    .from("aplicacion")
+    .select("id")
+    .eq("semana_id", semanaId)
+    .eq("grupo_id", grupoId);
+
+  const appIds = (aplicaciones ?? []).map((a) => a.id);
+
+  let erroresFrecuentes: string[] = ["Sin datos de errores frecuentes"];
+
+  if (appIds.length > 0) {
+    // Buscar preguntas aplicadas
+    const { data: preguntasApli } = await supabaseAdmin
+      .from("pregunta_aplicada")
+      .select("id, pregunta:pregunta_id(texto_pregunta)")
+      .in("aplicacion_id", appIds);
+
+    const paMap = new Map();
+    (preguntasApli ?? []).forEach((pa) => {
+      paMap.set(pa.id, ((pa.pregunta as unknown) as { texto_pregunta: string })?.texto_pregunta ?? "Pregunta desconocida");
+    });
+
+    const paIds = Array.from(paMap.keys());
+
+    if (paIds.length > 0) {
+      // Buscar respuestas incorrectas
+      const { data: respuestasInc } = await supabaseAdmin
+        .from("respuesta_alumno")
+        .select("pregunta_aplicada_id, respuesta_seleccionada")
+        .eq("es_correcta", false)
+        .in("pregunta_aplicada_id", paIds);
+
+      if (respuestasInc && respuestasInc.length > 0) {
+        // Agrupar por pregunta y respuesta
+        const conteoErrores: Record<string, number> = {};
+        respuestasInc.forEach((r) => {
+          const textoPregunta = paMap.get(r.pregunta_aplicada_id);
+          const key = `Pregunta: "${textoPregunta}" | Respondieron erróneamente: "${r.respuesta_seleccionada}"`;
+          conteoErrores[key] = (conteoErrores[key] || 0) + 1;
+        });
+
+        // Tomar los 5 errores más comunes
+        erroresFrecuentes = Object.entries(conteoErrores)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([desc, count]) => `${desc} (${count} alumnos)`);
+      }
+    }
+  }
 
   // ── 4. Generar reporte con IA ──────────────────────────────────────────
   const datosSemana: DatosSemana = {
@@ -182,19 +232,21 @@ export async function POST(
   const { data: reporteGuardado, error: errorGuardar } = await supabaseAdmin
     .from("reporte")
     .insert({
-      grupo_id: grupoId,
       semana_id: semanaId,
-      contenido: contenidoReporte,
+      tipo_reporte: "diagnostico_semanal",
+      total_alumnos: totalAlumnos,
+      pct_dominio: pctDominio,
+      contenido_ia: contenidoReporte,
       estado: "borrador",
       generado_at: new Date().toISOString(),
-      docente_id: profesor?.id ?? null,
     })
     .select("id")
     .single();
 
   if (errorGuardar || !reporteGuardado) {
+    console.error("[reportes/generar] Error guardar:", errorGuardar);
     return NextResponse.json(
-      { error: "Error al guardar el reporte en la base de datos" },
+      { error: `Error al guardar el reporte en la base de datos: ${errorGuardar?.message}` },
       { status: 500 },
     );
   }
@@ -208,3 +260,14 @@ export async function POST(
     { status: 201 },
   );
 }
+
+export async function GET() {
+  const supabaseAdmin = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { cookies: { getAll: () => [], setAll: () => {} } }
+  );
+  const { data, error } = await supabaseAdmin.from("reporte").select("*").limit(1);
+  return NextResponse.json({ info: "DB SCHEMA REPORT", data, error });
+}
+
