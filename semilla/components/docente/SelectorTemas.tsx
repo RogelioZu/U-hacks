@@ -5,8 +5,8 @@ import { guardarTemas } from "@/app/(docente)/acciones";
 import type { Materia, Tema } from "@/types/semilla";
 
 interface Props {
-  materias: Materia[];
-  temas: Tema[];
+  materias: Omit<Materia, "clave">[];
+  temas: Omit<Tema, "bloque">[];
   semanaId: number;
   grupoId: number;
   // Temas que ya están seleccionados para esta semana
@@ -107,11 +107,6 @@ export default function SelectorTemas({
                         <span className="text-sm text-slate-700">
                           {tema.nombre}
                         </span>
-                        {tema.bloque && (
-                          <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
-                            Bloque {tema.bloque}
-                          </span>
-                        )}
                       </label>
                     </li>
                   );

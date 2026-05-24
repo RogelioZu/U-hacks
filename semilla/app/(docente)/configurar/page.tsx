@@ -81,26 +81,23 @@ export default async function PaginaConfigurar() {
   // ── Cargar catálogo de materias y temas desde Supabase ───────────────
   const { data: materiasData } = await admin
     .from("materia")
-    .select("id, nombre, clave")
+    .select("id, nombre")
     .order("nombre");
 
   const { data: temasData } = await admin
     .from("tema")
-    .select("id, materia_id, nombre, bloque")
-    .order("bloque")
+    .select("id, materia_id, nombre")
     .order("nombre");
 
-  const materias: Materia[] = (materiasData ?? []).map((m) => ({
+  const materias: Omit<Materia, "clave">[] = (materiasData ?? []).map((m) => ({
     id: m.id,
     nombre: m.nombre,
-    clave: m.clave,
   }));
 
-  const temas: Tema[] = (temasData ?? []).map((t) => ({
+  const temas: Omit<Tema, "bloque">[] = (temasData ?? []).map((t) => ({
     id: t.id,
     materia_id: t.materia_id,
     nombre: t.nombre,
-    bloque: t.bloque,
   }));
 
   // ── Temas ya seleccionados para esta semana / grupo ──────────────────
