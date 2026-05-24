@@ -133,12 +133,13 @@ export default async function PaginaTablero() {
     `,
     )
     .in("alumno_id", alumnoIds.length > 0 ? alumnoIds : [0]);
+  // DESPUÉS — derivar los ids de semana que ya obtuviste
+  const semanaIds = (todasSemanas ?? []).map((s) => s.id);
 
-  // ── Obtener temas vistos históricamente ────────────────────────────────
   const { data: todosTemasVistos } = await admin
     .from("semana_materia")
     .select("semana_id, tema:tema_id(nombre)")
-    .eq("grupo_id", grupo.id);
+    .in("semana_id", semanaIds.length > 0 ? semanaIds : [0]); // ← filtro correcto
 
   // ── Verificar si el quiz ya fue configurado (existe aplicación) ────────
   let aplicacionConfigurada = false;
