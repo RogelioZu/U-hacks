@@ -58,7 +58,32 @@ export async function guardarTemas(
 
   if (appExistente) {
     aplicacionId = appExistente.id;
-    // Limpiar preguntas previas si el profesor reconfigura
+    // Limpiar diagnósticos previos de esta semana/grupo
+    const { data: alumnosGrupo } = await supabase.from("alumno").select("id").eq("grupo_id", grupoId);
+    if (alumnosGrupo && alumnosGrupo.length > 0) {
+      const alumnoIds = alumnosGrupo.map((a) => a.id);
+      await supabase
+        .from("diagnostico_alumno")
+        .delete()
+        .eq("semana_id", semanaId)
+        .in("alumno_id", alumnoIds);
+    }
+
+    // Obtener los IDs de las preguntas aplicadas actuales para borrar sus respuestas
+    const { data: preguntasViejas } = await supabase
+      .from("pregunta_aplicada")
+      .select("id")
+      .eq("aplicacion_id", aplicacionId);
+
+    if (preguntasViejas && preguntasViejas.length > 0) {
+      const idsViejos = preguntasViejas.map(p => p.id);
+      await supabase
+        .from("respuesta_alumno")
+        .delete()
+        .in("pregunta_aplicada_id", idsViejos);
+    }
+
+    // Ahora sí podemos limpiar las preguntas previas sin errores de Foreign Key
     await supabase.from("pregunta_aplicada").delete().eq("aplicacion_id", aplicacionId);
   } else {
     const { data: newApp, error: errNewApp } = await supabase
