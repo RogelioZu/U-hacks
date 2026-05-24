@@ -90,22 +90,28 @@ export default async function PaginaTablero() {
   const semanaActiva = todasSemanas?.find((s) => s.estado === "activa");
   const semanasCerradas = todasSemanas?.filter((s) => s.estado === "cerrada") ?? [];
 
-  // ── Obtener todos los diagnósticos del grupo ───────────────────────────
+  // ── Obtener alumnos del grupo ──────────────────────────────────────────
+  const { data: alumnosData } = await admin
+    .from("alumno")
+    .select("id")
+    .eq("grupo_id", grupo.id);
+  const alumnoIds = alumnosData?.map((a) => a.id) ?? [];
+
+  // ── Obtener todos los diagnósticos de los alumnos del grupo ────────────
   const { data: todosDiagnosticos } = await admin
     .from("diagnostico_alumno")
     .select(
       `
       id,
       alumno_id,
-      grupo_id,
       semana_id,
-      materia_id,
+      tema_id,
       nivel_dominio,
       requiere_repaso,
-      materia:materia_id(nombre)
+      tema:tema_id(materia:materia_id(nombre))
     `
     )
-    .eq("grupo_id", grupo.id);
+    .in("alumno_id", alumnoIds.length > 0 ? alumnoIds : [0]);
 
   // ── Obtener temas vistos históricamente ────────────────────────────────
   const { data: todosTemasVistos } = await admin
@@ -120,18 +126,23 @@ export default async function PaginaTablero() {
       (d) => d.semana_id === semanaActiva.id
     );
 
-    diagnosticos = datosDiag.map((d, indice) => ({
-      id: d.id,
-      alumno_id: d.alumno_id,
-      alias: `Alumno ${String(indice + 1).padStart(2, "0")}`,
-      grupo_id: d.grupo_id,
-      semana_id: d.semana_id,
-      materia_id: d.materia_id,
-      materia_nombre:
-        ((d.materia as unknown) as { nombre: string } | null)?.nombre ?? "—",
-      nivel_dominio: d.nivel_dominio as 0 | 1 | 2 | 3,
-      requiere_repaso: d.requiere_repaso,
-    }));
+    diagnosticos = datosDiag.map((d, indice) => {
+      // Extraer nombre de la materia desde tema -> materia -> nombre
+      const temaData = d.tema as any;
+      const materiaNombre = temaData?.materia?.nombre ?? "—";
+
+      return {
+        id: d.id,
+        alumno_id: d.alumno_id,
+        alias: `Alumno ${String(indice + 1).padStart(2, "0")}`,
+        grupo_id: grupo.id,
+        semana_id: d.semana_id,
+        materia_id: d.tema_id, // Hack para usar tema_id donde espera materia_id
+        materia_nombre: materiaNombre,
+        nivel_dominio: d.nivel_dominio as 0 | 1 | 2 | 3,
+        requiere_repaso: d.requiere_repaso,
+      };
+    });
   }
 
   const alumnosEnRiesgo = diagnosticos.filter((d) => d.requiere_repaso).length;
