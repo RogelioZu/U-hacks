@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
     // Merge existing metadata with role
     const existing = user.user_metadata ?? {};
-    const newMeta = { ...existing, rol: "nexo.alumno" };
+    const newMeta = { ...existing, rol: "semilla.alumno" };
 
     const res = await admin.auth.admin.updateUserById(user.id, {
       user_metadata: newMeta,
