@@ -1,14 +1,12 @@
 import { GoogleGenAI } from "@google/genai";
 
-// Wrapper central de IA para Nexo.
-// Usa la API de Google Gemini (AI Studio) en lugar de OpenAI.
-// Modelo único configurable: cámbialo aquí y aplica a toda la app.
+// Wrapper central de IA para Nexo (Persona 3 — IA y reportes).
+// Usa Google Gemini (AI Studio). Modelo único configurable aquí.
 const MODELO = "gemini-2.5-flash";
 
 const apiKey = process.env.GEMINI_API_KEY;
 
-// Cliente perezoso: no rompe el build si la key aún no está configurada;
-// solo falla cuando realmente se invoca a la IA en el servidor.
+// Cliente perezoso: no rompe el build si la key no está; solo falla al invocarse.
 let _ai: GoogleGenAI | null = null;
 function getClient(): GoogleGenAI {
   if (!apiKey) {
@@ -20,35 +18,59 @@ function getClient(): GoogleGenAI {
   return _ai;
 }
 
+// ── 1. Retroalimentación al alumno ───────────────────────────────────
+
+export interface DatosRetroalimentacion {
+  /** Texto de la pregunta del quiz. */
+  textoPregunta: string;
+  /** Opción incorrecta que eligió el alumno. */
+  respuestaSeleccionada: string;
+  /** Respuesta correcta. Se le da a la IA para guiar, NO para revelarla. */
+  respuestaCorrecta: string;
+  /** Qué malentendido conceptual refleja la opción elegida (del banco de preguntas). */
+  errorDistractor: string;
+  /** Pista pedagógica mapeada a ese distractor (del banco de preguntas). */
+  pistaDistractor: string;
+}
+
+const SYSTEM_RETROALIMENTACION = `Eres un tutor de una Telesecundaria mexicana. Acompañas a estudiantes de 12 a 15 años que acaban de elegir una opción incorrecta en un quiz. Tu meta es que se den cuenta de su malentendido y quieran intentarlo otra vez, sin sentirse mal.
+
+Reglas:
+- Háblale de "tú", con calidez y respeto. Lenguaje sencillo, frases cortas.
+- NUNCA uses palabras que castiguen: nada de "mal", "incorrecto", "error" o "fallaste". Usa "casi", "vas por buen camino", "fíjate en…".
+- Reconoce su intento, nombra con suavidad el malentendido puntual y transmite la pista pedagógica con tus propias palabras.
+- NUNCA reveles ni escribas la respuesta correcta: la idea es que la descubra al reintentar.
+- Termina SIEMPRE con una pregunta breve que lo invite a volver a intentarlo.
+- Máximo 3 oraciones. Texto plano, sin listas ni markdown. Como mucho un emoji.`;
+
 /**
- * Retroalimentación cálida para un alumno que respondió incorrectamente.
- * Estilo Telesecundaria: alentador, tutea, nunca penaliza el error.
+ * Retroalimentación cálida y pedagógica para una respuesta incorrecta.
+ * Estilo Telesecundaria: alentador, tutea, guía sin revelar la respuesta.
  */
 export async function generarRetroalimentacion(
-  textoPregunta: string,
-  respuestaSeleccionada: string,
-  errorDistractor: string,
-  pistaDistractor: string,
+  datos: DatosRetroalimentacion,
 ): Promise<string> {
   const response = await getClient().models.generateContent({
     model: MODELO,
-    contents: `El alumno respondió incorrectamente.
-Pregunta: ${textoPregunta}
-Respuesta elegida: ${respuestaSeleccionada}
-Error cometido: ${errorDistractor}
-Pista pedagógica a usar: ${pistaDistractor}`,
+    contents: `Pregunta: ${datos.textoPregunta}
+Opción que eligió el alumno: ${datos.respuestaSeleccionada}
+Malentendido que refleja esa opción: ${datos.errorDistractor}
+Pista pedagógica que debes transmitir: ${datos.pistaDistractor}
+(Solo para tu guía interna, NO la menciones: la respuesta correcta es "${datos.respuestaCorrecta}".)`,
     config: {
-      temperature: 0.4,
-      maxOutputTokens: 150,
-      systemInstruction: `Eres un tutor de Telesecundaria mexicana. Tu estilo es cálido,
-alentador y nunca penalizas el error. Hablas de tú al estudiante.
-Siempre terminas con una pregunta que lo invite a intentar de nuevo.
-Máximo 3 oraciones.`,
+      temperature: 0.6,
+      maxOutputTokens: 256,
+      // gemini-2.5-flash razona por defecto; sin esto puede gastar el presupuesto
+      // de tokens "pensando" y devolver vacío. No necesitamos cadena de pensamiento.
+      thinkingConfig: { thinkingBudget: 0 },
+      systemInstruction: SYSTEM_RETROALIMENTACION,
     },
   });
 
-  return response.text ?? "";
+  return response.text?.trim() ?? "";
 }
+
+// ── 2. Reporte para el Consejo Técnico Escolar (CTE) ─────────────────
 
 export interface DatosSemana {
   nombreGrupo: string;
@@ -60,29 +82,38 @@ export interface DatosSemana {
   erroresFrecuentes: string[];
 }
 
+const SYSTEM_REPORTE_CTE = `Eres asistente de redacción para docentes de Telesecundaria en México. Redactas borradores de reporte para el Consejo Técnico Escolar (CTE).
+
+Reglas:
+- Lenguaje institucional formal, en tercera persona, alineado a los lineamientos de la SEP.
+- Estructura el texto EXACTAMENTE con estos cuatro apartados, cada uno con su encabezado en MAYÚSCULAS y en este orden: CONTEXTO DEL GRUPO, AVANCES POR COMPETENCIA, ÁREAS DE OPORTUNIDAD, ESTRATEGIAS DE MEJORA PROPUESTAS.
+- Básate ÚNICAMENTE en los datos proporcionados. No inventes cifras, porcentajes ni nombres de alumnos.
+- Las estrategias deben ser concretas y accionables para la siguiente semana de clases.
+- Cierra con una línea indicando que es un borrador asistido por IA, sujeto a la revisión y validación del docente titular.
+- Extensión: 4 a 6 párrafos. Texto plano, sin markdown.`;
+
 /**
- * Borrador de reporte para el Consejo Técnico Escolar (CTE).
- * Lenguaje institucional formal; el docente lo revisa antes de enviar.
+ * Borrador de reporte CTE a partir de los datos agregados de la semana.
+ * El docente lo revisa y firma antes de enviarlo (lenguaje institucional formal).
  */
 export async function generarReporteCTE(datos: DatosSemana): Promise<string> {
   const response = await getClient().models.generateContent({
     model: MODELO,
-    contents: `Genera el reporte CTE con estos datos:
-Grupo: ${datos.nombreGrupo} | Semana: ${datos.numeroSemana}
-Temas evaluados: ${datos.temas.join(", ")}
-Alumnos evaluados: ${datos.totalAlumnos}
+    contents: `Genera el borrador del reporte CTE con estos datos:
+Grupo: ${datos.nombreGrupo}
+Semana: ${datos.numeroSemana}
+Temas evaluados: ${datos.temas.join(", ") || "ninguno"}
+Total de alumnos evaluados: ${datos.totalAlumnos}
 Porcentaje de dominio grupal: ${datos.pctDominio}%
 Alumnos con dificultades recurrentes: ${datos.alumnosEnRiesgo}
-Errores más frecuentes: ${datos.erroresFrecuentes.join(", ")}`,
+Errores más frecuentes detectados: ${datos.erroresFrecuentes.join("; ") || "sin datos suficientes"}`,
     config: {
-      maxOutputTokens: 800,
-      systemInstruction: `Eres asistente de redacción para docentes de Telesecundaria en México.
-Redactas reportes para el Consejo Técnico Escolar (CTE) con lenguaje
-institucional formal, siguiendo los lineamientos de la SEP.
-Siempre incluyes: contexto del grupo, avances por competencia,
-áreas de oportunidad y estrategias de mejora propuestas.`,
+      temperature: 0.5,
+      maxOutputTokens: 1200,
+      thinkingConfig: { thinkingBudget: 0 },
+      systemInstruction: SYSTEM_REPORTE_CTE,
     },
   });
 
-  return response.text ?? "";
+  return response.text?.trim() ?? "";
 }
