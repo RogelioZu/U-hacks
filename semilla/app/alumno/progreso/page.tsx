@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, createSupabaseAdminClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -12,6 +12,8 @@ export default async function ProgresoPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const admin = createSupabaseAdminClient();
+
   // Obtener diagnósticos reales del alumno
   let diagnosticos: {
     materia_nombre: string;
@@ -23,7 +25,7 @@ export default async function ProgresoPage() {
   let totalRespuestasGlobal = 0;
 
   if (user) {
-    const { data: alumnoData } = await supabase
+    const { data: alumnoData } = await admin
       .from("alumno")
       .select("id")
       .eq("auth_user_id", user.id)
@@ -31,7 +33,7 @@ export default async function ProgresoPage() {
 
     if (alumnoData) {
       // Diagnósticos más recientes del alumno
-      const { data: diagData } = await supabase
+      const { data: diagData } = await admin
         .from("diagnostico_alumno")
         .select("nivel_dominio, requiere_repaso, materia:materia_id(nombre)")
         .eq("alumno_id", alumnoData.id)
@@ -48,7 +50,7 @@ export default async function ProgresoPage() {
       }
 
       // Estadísticas globales de respuestas
-      const { data: respuestasData } = await supabase
+      const { data: respuestasData } = await admin
         .from("respuesta_alumno")
         .select("es_correcta")
         .eq("alumno_id", alumnoData.id);

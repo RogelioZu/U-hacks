@@ -56,6 +56,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // Obtener el número de intentos previos
+    const { count, error: countError } = await adminSupabase
+      .from("respuesta_alumno")
+      .select("*", { count: "exact", head: true })
+      .eq("alumno_id", alumno_id)
+      .eq("pregunta_aplicada_id", pregunta_aplicada_id);
+
+    if (countError) {
+      console.error("[quiz/respuesta] Error al contar intentos:", countError);
+    }
+    const intentoActual = (count ?? 0) + 1;
+
     const { data, error } = await adminSupabase
       .from("respuesta_alumno")
       .insert({
@@ -65,6 +77,7 @@ export async function POST(request: Request) {
         es_correcta,
         tiempo_respuesta_seg,
         modo_entrega: "online",
+        intento_numero: intentoActual,
       })
       .select("id")
       .single();
