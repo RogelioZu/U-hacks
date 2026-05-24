@@ -13,7 +13,7 @@ import type { DiagnosticoAlumno } from "@/types/semilla";
 export const metadata: Metadata = {
   title: "Tablero Docente — Semilla",
   description:
-    "Diagnóstico semanal del grupo y alertas de alumnos en riesgo para docentes de Telesecundaria.",
+    "Diagnóstico semanal del grupo y alertas de alumnos que requieren atención para docentes de Telesecundaria.",
 };
 
 export default async function PaginaTablero() {

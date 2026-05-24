@@ -26,9 +26,7 @@ export default function AlertaRiesgo({ alumnosEnRiesgo, totalAlumnos }: Props) {
           </svg>
         </div>
         <div>
-          <p className="text-sm font-semibold text-green-800">
-            ¡Grupo al día!
-          </p>
+          <p className="text-sm font-semibold text-green-800">¡Grupo al día!</p>
           <p className="text-xs text-green-600">
             Todos los alumnos avanzan sin dificultades esta semana.
           </p>
@@ -74,7 +72,8 @@ export default function AlertaRiesgo({ alumnosEnRiesgo, totalAlumnos }: Props) {
           {porcentaje !== null
             ? `${porcentaje}% del grupo requiere repaso adicional. `
             : ""}
-          Revisa la tabla para identificarlos y planifica actividades de refuerzo.
+          Revisa la tabla para identificarlos y planifica actividades de
+          refuerzo.
         </p>
       </div>
 
@@ -83,7 +82,9 @@ export default function AlertaRiesgo({ alumnosEnRiesgo, totalAlumnos }: Props) {
         <span className="block text-xl font-bold leading-tight text-amber-800">
           {alumnosEnRiesgo}
         </span>
-        <span className="text-xs font-medium text-amber-600">en riesgo</span>
+        <span className="text-xs font-medium text-amber-600">
+          requieren atención
+        </span>
       </div>
     </div>
   );

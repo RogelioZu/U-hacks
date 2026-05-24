@@ -14,7 +14,11 @@ export interface HistorialSemana {
   temasVistos: string[];
 }
 
-export default function HistorialSemanas({ semanas }: { semanas: HistorialSemana[] }) {
+export default function HistorialSemanas({
+  semanas,
+}: {
+  semanas: HistorialSemana[];
+}) {
   // Ordenar de la más antigua a la más reciente para el gráfico de evolución (de izquierda a derecha)
   const semanasGrafico = useMemo(() => {
     return [...semanas].sort((a, b) => a.numero_semana - b.numero_semana);
@@ -23,9 +27,12 @@ export default function HistorialSemanas({ semanas }: { semanas: HistorialSemana
   if (!semanas || semanas.length === 0) {
     return (
       <div className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-        <p className="font-medium text-slate-600">No hay historial de evaluaciones.</p>
+        <p className="font-medium text-slate-600">
+          No hay historial de evaluaciones.
+        </p>
         <p className="mt-1 text-sm text-slate-400">
-          Las semanas anteriores aparecerán aquí una vez que sean cerradas por el administrador.
+          Las semanas anteriores aparecerán aquí una vez que sean cerradas por
+          el administrador.
         </p>
       </div>
     );
@@ -38,7 +45,7 @@ export default function HistorialSemanas({ semanas }: { semanas: HistorialSemana
         <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-6">
           Evolución del Dominio Grupal
         </h3>
-        
+
         <div className="flex items-end justify-between gap-2 h-48 sm:h-56">
           {semanasGrafico.map((semana) => {
             const pct = semana.pctDominio ?? 0;
@@ -48,12 +55,15 @@ export default function HistorialSemanas({ semanas }: { semanas: HistorialSemana
             else if (pct >= 50) colorClase = "bg-amber-500";
 
             return (
-              <div key={semana.id} className="flex flex-col items-center flex-1 group">
+              <div
+                key={semana.id}
+                className="flex flex-col items-center flex-1 group"
+              >
                 {/* Porcentaje flotante */}
                 <span className="text-xs font-bold text-slate-600 mb-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   {pct}%
                 </span>
-                
+
                 {/* Barra */}
                 <div className="relative w-full max-w-[40px] bg-slate-100 rounded-t-md h-full flex items-end overflow-hidden">
                   <div
@@ -61,7 +71,7 @@ export default function HistorialSemanas({ semanas }: { semanas: HistorialSemana
                     style={{ height: `${pct}%` }}
                   ></div>
                 </div>
-                
+
                 {/* Etiqueta Eje X */}
                 <span className="text-xs text-slate-500 mt-2 font-medium truncate">
                   Sem {semana.numero_semana}
@@ -81,7 +91,9 @@ export default function HistorialSemanas({ semanas }: { semanas: HistorialSemana
           >
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <h4 className="font-bold text-slate-800 text-lg">Semana {semana.numero_semana}</h4>
+                <h4 className="font-bold text-slate-800 text-lg">
+                  Semana {semana.numero_semana}
+                </h4>
                 <span
                   className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                     semana.alumnosEnRiesgo > 0
@@ -89,12 +101,19 @@ export default function HistorialSemanas({ semanas }: { semanas: HistorialSemana
                       : "bg-green-100 text-green-700"
                   }`}
                 >
-                  {semana.alumnosEnRiesgo} en riesgo
+                  {semana.alumnosEnRiesgo} requieren atención
                 </span>
               </div>
               <p className="text-sm text-slate-500 mt-1">
-                {new Date(semana.fecha_inicio).toLocaleDateString("es-MX", { month: "short", day: "numeric" })} - {" "}
-                {new Date(semana.fecha_fin).toLocaleDateString("es-MX", { month: "short", day: "numeric" })}
+                {new Date(semana.fecha_inicio).toLocaleDateString("es-MX", {
+                  month: "short",
+                  day: "numeric",
+                })}{" "}
+                -{" "}
+                {new Date(semana.fecha_fin).toLocaleDateString("es-MX", {
+                  month: "short",
+                  day: "numeric",
+                })}
               </p>
 
               {/* Temas Vistos */}
@@ -109,7 +128,9 @@ export default function HistorialSemanas({ semanas }: { semanas: HistorialSemana
                     </span>
                   ))
                 ) : (
-                  <span className="text-xs italic text-slate-400">Sin temas registrados</span>
+                  <span className="text-xs italic text-slate-400">
+                    Sin temas registrados
+                  </span>
                 )}
               </div>
             </div>
