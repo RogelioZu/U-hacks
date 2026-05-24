@@ -111,11 +111,11 @@ export default function ReporteCTEEditor({
               </svg>
             </div>
             <p className="font-medium text-slate-700">
-              No hay reporte generado para esta semana.
+              No hay información generada para esta semana.
             </p>
             <p className="mt-1 text-sm text-slate-500">
-              Gemini analizará el diagnóstico de tu grupo y generará un borrador
-              institucional listo para revisar.
+              Gemini analizará el diagnóstico de tu grupo y generará sugerencias de
+              apoyo listas para revisar y ayudarte a crear tu reporte oficial.
             </p>
           </div>
 
@@ -144,7 +144,7 @@ export default function ReporteCTEEditor({
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                 </svg>
-                Generar reporte CTE con IA
+                Generar sugerencias con IA
               </span>
             )}
           </button>
@@ -160,19 +160,19 @@ export default function ReporteCTEEditor({
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
             <p className="text-sm text-amber-800">
-              <strong>Revisa el contenido antes de firmar.</strong> La IA genera un
-              borrador de apoyo; tú eres el responsable del contenido final del reporte.
+              <strong>Revisa el contenido antes de guardarlo.</strong> La IA genera una
+              propuesta de apoyo; tú eres el responsable de usar esta información para crear tu reporte oficial.
             </p>
           </div>
 
-          {/* Estado firmado */}
+          {/* Estado guardado */}
           {yaFirmado && (
-            <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+            <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 mb-4">
               <svg className="h-5 w-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
               <div>
-                <p className="text-sm font-semibold text-green-800">Reporte firmado</p>
+                <p className="text-sm font-semibold text-green-800">Última información guardada</p>
                 {reporte.firmado_at && (
                   <p className="text-xs text-green-600">
                     {new Date(reporte.firmado_at).toLocaleString("es-MX", {
@@ -191,18 +191,13 @@ export default function ReporteCTEEditor({
               htmlFor="contenido-reporte"
               className="block text-sm font-medium text-slate-700"
             >
-              Contenido del reporte
-              {!yaFirmado && (
-                <span className="ml-2 text-xs font-normal text-slate-400">
-                  (editable)
-                </span>
-              )}
+              Sugerencias e Información (puedes editar libremente)
             </label>
             <textarea
               id="contenido-reporte"
               value={contenido}
               onChange={(e) => setContenido(e.target.value)}
-              disabled={yaFirmado}
+              disabled={isPendingFirmar || isPendingGenerar}
               rows={18}
               className="w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-relaxed text-slate-700 shadow-sm transition-colors focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500"
               placeholder="El contenido del reporte aparecerá aquí..."
@@ -217,8 +212,7 @@ export default function ReporteCTEEditor({
           )}
 
           {/* Botones de acción */}
-          {!yaFirmado && (
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end mt-4">
               {/* Regenerar */}
               <button
                 id="btn-regenerar-reporte"
@@ -264,12 +258,11 @@ export default function ReporteCTEEditor({
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Firmar y guardar
+                    {yaFirmado ? "Actualizar información" : "Guardar información"}
                   </>
                 )}
               </button>
             </div>
-          )}
         </div>
       )}
     </div>

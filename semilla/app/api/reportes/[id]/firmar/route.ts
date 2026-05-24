@@ -106,12 +106,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Acceso denegado" }, { status: 403 });
   }
 
-  if (reporteActual.estado === "enviado" || reporteActual.estado === "firmado") {
-    return NextResponse.json(
-      { error: "El reporte ya fue firmado y no puede modificarse" },
-      { status: 409 },
-    );
-  }
+  // Se permite modificar la información en cualquier momento, ya que es un asistente.
 
   const { error: errorActualizar } = await admin
     .from("reporte")

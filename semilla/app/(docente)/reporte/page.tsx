@@ -99,16 +99,29 @@ export default async function PaginaReporte() {
   return (
     <div className="space-y-6">
       {/* Encabezado */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Reporte CTE</h1>
-        <p className="mt-0.5 text-sm text-slate-500">
-          {grupo.nombre} · Semana {semanaActiva.numero_semana} ·{" "}
-          {reporteInicial?.estado === "firmado"
-            ? "Reporte firmado"
-            : reporteInicial
-              ? "Borrador generado — revisa y firma"
-              : "Sin reporte — genera uno con IA"}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Asistente de Información CTE</h1>
+          <p className="mt-0.5 text-sm text-slate-500">
+            {grupo.nombre} · Semana {semanaActiva.numero_semana} ·{" "}
+            {reporteInicial?.estado === "firmado"
+              ? "Información guardada"
+              : reporteInicial
+                ? "Información generada — revisa y guarda"
+                : "Sin información — genera sugerencias con IA"}
+          </p>
+        </div>
+        <div className="mt-4 sm:mt-0">
+          <a
+            href="/historico"
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition-colors hover:bg-slate-50 active:scale-95"
+          >
+            <svg className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Histórico de reportes
+          </a>
+        </div>
       </div>
 
       {/* Qué es el CTE */}
@@ -120,11 +133,10 @@ export default async function PaginaReporte() {
             </svg>
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-700">¿Qué es el reporte CTE?</p>
+            <p className="text-sm font-medium text-slate-700">¿Para qué sirve esta sección?</p>
             <p className="mt-0.5 text-xs text-slate-500">
-              El Consejo Técnico Escolar (CTE) requiere un reporte mensual del avance del grupo.
-              Semilla genera un borrador institucional a partir del diagnóstico de la semana.
-              <strong className="text-slate-700"> Tú lo revisas, editas y firmas.</strong>
+              Esta herramienta genera sugerencias e información clave sobre el avance de tu grupo.
+              <strong className="text-slate-700"> No es tu reporte oficial final</strong>, sino un asistente que te proporciona un borrador (con áreas de oportunidad y estrategias) para facilitarte la redacción de tu reporte CTE real. Puedes guardarlo aquí mismo para tener un histórico.
             </p>
           </div>
         </div>
