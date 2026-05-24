@@ -16,6 +16,7 @@ export default async function ProgresoPage() {
 
   // Obtener diagnósticos reales del alumno
   let diagnosticos: {
+    tema_nombre: string;
     materia_nombre: string;
     nivel_dominio: number;
     requiere_repaso: boolean;
@@ -32,21 +33,29 @@ export default async function ProgresoPage() {
       .single();
 
     if (alumnoData) {
-      // Diagnósticos más recientes del alumno
+      // Diagnósticos más recientes del alumno.
+      // El diagnóstico se guarda por tema; la materia se obtiene anidada vía tema.
       const { data: diagData } = await admin
         .from("diagnostico_alumno")
-        .select("nivel_dominio, requiere_repaso, materia:materia_id(nombre)")
+        .select(
+          "nivel_dominio, requiere_repaso, tema:tema_id(nombre, materia:materia_id(nombre))"
+        )
         .eq("alumno_id", alumnoData.id)
         .order("semana_id", { ascending: false })
         .limit(10);
 
       if (diagData) {
-        diagnosticos = diagData.map((d) => ({
-          materia_nombre:
-            ((d.materia as unknown) as { nombre: string } | null)?.nombre ?? "—",
-          nivel_dominio: d.nivel_dominio as number,
-          requiere_repaso: d.requiere_repaso as boolean,
-        }));
+        diagnosticos = diagData.map((d) => {
+          const tema = (d.tema as unknown) as
+            | { nombre: string; materia: { nombre: string } | null }
+            | null;
+          return {
+            tema_nombre: tema?.nombre ?? "—",
+            materia_nombre: tema?.materia?.nombre ?? "—",
+            nivel_dominio: d.nivel_dominio as number,
+            requiere_repaso: d.requiere_repaso as boolean,
+          };
+        });
       }
 
       // Estadísticas globales de respuestas
@@ -152,7 +161,7 @@ export default async function ProgresoPage() {
       {/* Diagnóstico por materia */}
       <section className="s-card p-6">
         <h2 className="text-lg font-bold mb-5" style={{ color: "var(--s-navy)" }}>
-          Diagnóstico por materia
+          Diagnóstico por tema
         </h2>
 
         {diagnosticos.length === 0 ? (
@@ -189,9 +198,14 @@ export default async function ProgresoPage() {
                         </svg>
                       </span>
                     )}
-                    <span className="text-sm font-medium" style={{ color: "var(--s-text)" }}>
-                      {d.materia_nombre}
-                    </span>
+                    <div>
+                      <span className="text-sm font-medium" style={{ color: "var(--s-text)" }}>
+                        {d.tema_nombre}
+                      </span>
+                      <p className="text-xs" style={{ color: "var(--s-text-muted)" }}>
+                        {d.materia_nombre}
+                      </p>
+                    </div>
                   </div>
                   <span
                     className="s-badge text-xs"
