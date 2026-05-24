@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import LogoutButton from "@/components/docente/LogoutButton";
+import ChatAsistente from "@/components/ChatAsistente";
 
 // Layout compartido para todas las rutas del docente.
 // Verifica sesión y rol — segunda capa tras proxy.ts.
@@ -108,6 +109,8 @@ export default async function LayoutDocente({
 
       {/* Contenido */}
       <main className="mx-auto max-w-4xl px-4 py-8">{children}</main>
+
+      <ChatAsistente audiencia="docente" />
     </div>
   );
 }

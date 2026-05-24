@@ -269,20 +269,30 @@ export default function AlumnoQuizPage() {
 
     const respuestaTexto = preguntaActual.opciones.find((op) => op.clave === clave)?.texto ?? clave;
 
+    // Modo demo: las preguntas no están en la BD (id negativo), así que no hay
+    // mapeo pedagógico que leer en el servidor. Mostramos la pista local sin
+    // llamar a la IA (no gasta tokens y funciona offline).
+    if (modoDemo || preguntaActual.id < 0) {
+      setFeedback(`Casi. Pista: ${preguntaActual.pistaDistractor}`);
+      setMensaje("Casi. Lee la orientación y vuelve a intentar.");
+      setProcesando(false);
+      return;
+    }
+
+    // Preguntas reales: el endpoint seguro lee el error y la pista del distractor
+    // EN EL SERVIDOR a partir del id; ni la respuesta correcta ni las pistas
+    // viajan al cliente.
     try {
-      const respuesta = await fetch("/api/feedback", {
+      const respuesta = await fetch("/api/ai/retroalimentacion", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          pregunta: preguntaActual.texto,
+          preguntaId: preguntaActual.id,
           respuestaSeleccionada: respuestaTexto,
-          respuestaCorrecta: preguntaActual.opciones.find((o) => o.clave === preguntaActual.correcta)?.texto ?? "",
-          errorDistractor: preguntaActual.errorDistractor,
-          pistaDistractor: preguntaActual.pistaDistractor,
         }),
       });
       const datos = await respuesta.json();
-      setFeedback(datos.feedback ?? "Usa la pista y vuelve a intentarlo.");
+      setFeedback(datos.retroalimentacion ?? "Usa la pista y vuelve a intentarlo.");
       setMensaje("Casi. Lee la orientación y vuelve a intentar.");
     } catch {
       setFeedback(`Pista: ${preguntaActual.pistaDistractor}`);

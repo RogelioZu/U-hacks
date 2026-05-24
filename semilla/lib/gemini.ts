@@ -125,3 +125,75 @@ Errores más frecuentes detectados: ${datos.erroresFrecuentes.join("; ") || "sin
 
   return response.text?.trim() ?? "";
 }
+
+// ── 3. Chat conversacional (tutor del alumno / asistente del docente) ─────
+
+/** Un turno del chat. Gemini espera los roles "user" y "model". */
+export interface MensajeChat {
+  rol: "user" | "model";
+  texto: string;
+}
+
+export type AudienciaChat = "alumno" | "docente";
+
+const SYSTEM_CHAT_ALUMNO = `Eres "Semilla", el tutor virtual de una Telesecundaria mexicana. Conversas con un estudiante de 12 a 15 años que tiene dudas sobre lo que está aprendiendo.
+
+Reglas:
+- Háblale de "tú", con calidez y paciencia. Lenguaje sencillo y frases cortas; recuerda que puede tener poca práctica leyendo.
+- Guía con preguntas y ejemplos de la vida real. Lleva al alumno a razonar, no le des el resultado masticado.
+- NUNCA reveles ni escribas la respuesta de una pregunta del quiz, aunque te lo pida directa o insistentemente. Si insiste, ofrécele una pista nueva y anímalo a intentarlo.
+- Nunca uses palabras que castiguen ("mal", "incorrecto", "fallaste"). Usa "casi", "vas bien", "fíjate en…".
+- Quédate en temas escolares (matemáticas, español, ciencias, etc.). Si te preguntan algo ajeno o inseguro, redirígelo con amabilidad a su aprendizaje.
+- Responde en español, breve (2 a 4 oraciones). Texto plano, sin markdown. Como mucho un emoji.`;
+
+const SYSTEM_CHAT_DOCENTE = `Eres el asistente pedagógico de NEXO para docentes de Telesecundaria en México. Apoyas al profesor a interpretar el diagnóstico de su grupo, proponer estrategias de enseñanza y redactar o ajustar reportes para el Consejo Técnico Escolar (CTE).
+
+Reglas:
+- Tono profesional y respetuoso, lenguaje alineado a los lineamientos de la SEP.
+- Básate ÚNICAMENTE en los datos del contexto que se te proporcionen. No inventes cifras, porcentajes ni nombres de alumnos; si faltan datos, dilo y pide precisarlos.
+- Nunca expongas datos personales de los alumnos (nombres, CURP); trabaja siempre con agregados del grupo.
+- Ofrece estrategias concretas y accionables para la siguiente semana de clases.
+- Responde en español, claro y conciso. Puedes usar listas cortas cuando ayude a la claridad.`;
+
+/**
+ * Responde un turno de chat en streaming. Devuelve los fragmentos de texto
+ * conforme el modelo los genera, para mostrarlos en vivo en la UI.
+ *
+ * El `systemInstruction` y el `contexto` SIEMPRE se arman en el servidor:
+ * el cliente solo aporta el historial de mensajes visible para el usuario.
+ */
+export async function* responderChatStream(opciones: {
+  audiencia: AudienciaChat;
+  historial: MensajeChat[];
+  /** Contexto adicional armado en el servidor (rol, grupo, diagnóstico). */
+  contexto?: string;
+}): AsyncGenerator<string> {
+  const client = await getClient();
+
+  const base =
+    opciones.audiencia === "alumno" ? SYSTEM_CHAT_ALUMNO : SYSTEM_CHAT_DOCENTE;
+  const systemInstruction = opciones.contexto
+    ? `${base}\n\nContexto de la sesión (úsalo para responder; no lo repitas literal):\n${opciones.contexto}`
+    : base;
+
+  const contents = opciones.historial.map((m) => ({
+    role: m.rol,
+    parts: [{ text: m.texto }],
+  }));
+
+  const stream = await client.models.generateContentStream({
+    model: MODELO,
+    contents,
+    config: {
+      temperature: opciones.audiencia === "alumno" ? 0.6 : 0.5,
+      maxOutputTokens: 800,
+      thinkingConfig: { thinkingBudget: 0 },
+      systemInstruction,
+    },
+  });
+
+  for await (const chunk of stream) {
+    const texto: string | undefined = chunk.text;
+    if (texto) yield texto;
+  }
+}
