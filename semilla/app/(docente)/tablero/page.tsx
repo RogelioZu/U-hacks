@@ -108,9 +108,15 @@ export default async function PaginaTablero() {
   // ── Obtener alumnos del grupo ──────────────────────────────────────────
   const { data: alumnosData } = await admin
     .from("alumno")
-    .select("id")
+    .select("id, nombre, apellidos") // ← añadir campos
     .eq("grupo_id", grupo.id);
-  const alumnoIds = alumnosData?.map((a) => a.id) ?? [];
+
+  const alumnoIds = (alumnosData ?? []).map((a) => a.id);
+
+  // Mapa id → nombre completo para el paso siguiente
+  const nombrePorId = Object.fromEntries(
+    (alumnosData ?? []).map((a) => [a.id, `${a.nombre} ${a.apellidos}`]),
+  );
 
   // ── Obtener todos los diagnósticos de los alumnos del grupo ────────────
   const { data: todosDiagnosticos } = await admin
@@ -162,7 +168,9 @@ export default async function PaginaTablero() {
       return {
         id: d.id,
         alumno_id: d.alumno_id,
-        alias: `Alumno ${String(indice + 1).padStart(2, "0")}`,
+        alias:
+          nombrePorId[d.alumno_id] ??
+          `Alumno ${String(indice + 1).padStart(2, "0")}`,
         grupo_id: grupo.id,
         semana_id: d.semana_id,
         materia_id: d.tema_id, // Hack para usar tema_id donde espera materia_id

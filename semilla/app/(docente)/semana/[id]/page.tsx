@@ -201,7 +201,7 @@ export default async function PaginaDetalleSemana(props: {
         <h2 className="text-base font-semibold text-slate-700">
           Desempeño por alumno (Archivo Histórico)
         </h2>
-        <DiagnosticoGrupo diagnosticos={diagnosticos} />
+        <DiagnosticoGrupo diagnosticos={await Promise.all(diagnosticos)} />
       </div>
     </div>
   );
