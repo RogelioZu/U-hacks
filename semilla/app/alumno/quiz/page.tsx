@@ -172,6 +172,11 @@ export default function AlumnoQuizPage() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [procesando, setProcesando] = useState(false);
   const [terminado, setTerminado] = useState(false);
+
+  // Estados para la IA opcional
+  const [respuestaSeleccionadaTexto, setRespuestaSeleccionadaTexto] = useState<string | null>(null);
+  const [pidiendoAyudaIA, setPidiendoAyudaIA] = useState(false);
+  const [ayudaIARecibida, setAyudaIARecibida] = useState(false);
   
   // Track questions failed on the first try
   const [falladas, setFalladas] = useState<Set<number>>(new Set());
@@ -286,6 +291,9 @@ export default function AlumnoQuizPage() {
           setEstadoRespuesta("pendiente");
           setMensaje(null);
           setFeedback(null);
+          setRespuestaSeleccionadaTexto(null);
+          setAyudaIARecibida(false);
+          setPidiendoAyudaIA(false);
         }, 1100);
       }
       return;
@@ -298,39 +306,36 @@ export default function AlumnoQuizPage() {
 
     const respuestaTexto = preguntaActual.opciones.find((op) => op.clave === clave)?.texto ?? clave;
 
-    // Modo demo: las preguntas no están en la BD (id negativo), así que no hay
-    // mapeo pedagógico que leer en el servidor. Mostramos la pista local sin
-    // llamar a la IA (no gasta tokens y funciona offline).
-    if (modoDemo || preguntaActual.id < 0) {
-      setFeedback(`Casi. Pista: ${preguntaActual.pistaDistractor}`);
-      setMensaje("Casi. Lee la orientación y vuelve a intentar.");
-      setProcesando(false);
-      return;
-    }
+    // Modo demo o inicial: mostrar pista local
+    const pistaFallback =
+      preguntaActual.pistasPorTexto[respuestaTexto] ?? preguntaActual.pistaDistractor;
+    setFeedback(`Pista: ${pistaFallback}`);
+    setMensaje("Tu respuesta no fue correcta. Lee la pista y vuelve a intentar.");
+    setProcesando(false);
+    setRespuestaSeleccionadaTexto(respuestaTexto);
+    setAyudaIARecibida(false);
+  }
 
-    // Preguntas reales: el endpoint seguro lee el error y la pista del distractor
-    // EN EL SERVIDOR a partir del id; ni la respuesta correcta ni las pistas
-    // viajan al cliente.
+  async function pedirAyudaIA() {
+    if (!respuestaSeleccionadaTexto) return;
+    setPidiendoAyudaIA(true);
     try {
       const respuesta = await fetch("/api/ai/retroalimentacion", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           preguntaId: preguntaActual.id,
-          respuestaSeleccionada: respuestaTexto,
+          respuestaSeleccionada: respuestaSeleccionadaTexto,
         }),
       });
       const datos = await respuesta.json();
       setFeedback(datos.retroalimentacion ?? "Usa la pista y vuelve a intentarlo.");
-      setMensaje("Casi. Lee la orientación y vuelve a intentar.");
+      setMensaje("Orientación de tu tutora IA:");
+      setAyudaIARecibida(true);
     } catch {
-      // Bug #6 fix: usar la pista del distractor elegido, no siempre el primero
-      const pistaFallback =
-        preguntaActual.pistasPorTexto[respuestaTexto] ?? preguntaActual.pistaDistractor;
-      setFeedback(`Pista: ${pistaFallback}`);
-      setMensaje("Tu respuesta no fue correcta. Vuelve a intentar.");
+      setFeedback("Ocurrió un error al contactar a la IA. Sigue intentando con la pista.");
     } finally {
-      setProcesando(false);
+      setPidiendoAyudaIA(false);
     }
   }
 
@@ -338,6 +343,9 @@ export default function AlumnoQuizPage() {
     setEstadoRespuesta("pendiente");
     setMensaje(null);
     setFeedback(null);
+    setRespuestaSeleccionadaTexto(null);
+    setAyudaIARecibida(false);
+    setPidiendoAyudaIA(false);
   }
 
   // ── Loading ───────────────────────────────────────────────────────────────
@@ -653,15 +661,28 @@ export default function AlumnoQuizPage() {
                     </p>
                   )}
                   {estadoRespuesta === "incorrecta" && !procesando && (
-                    <button
-                      id="btn-intentar-nuevo"
-                      type="button"
-                      onClick={intentarDeNuevo}
-                      className="s-btn-secondary mt-4 text-sm"
-                    >
-                      <IconReintentar className="h-4 w-4" />
-                      Volver a intentar
-                    </button>
+                    <div className="flex flex-wrap gap-3 mt-4">
+                      <button
+                        id="btn-intentar-nuevo"
+                        type="button"
+                        onClick={intentarDeNuevo}
+                        className="s-btn-secondary text-sm"
+                      >
+                        <IconReintentar className="h-4 w-4" />
+                        Volver a intentar
+                      </button>
+                      {!modoDemo && preguntaActual.id > 0 && !ayudaIARecibida && (
+                        <button
+                          type="button"
+                          onClick={pedirAyudaIA}
+                          disabled={pidiendoAyudaIA}
+                          className="s-btn-primary flex gap-2 items-center text-sm disabled:opacity-60"
+                        >
+                          <IconBombilla className="h-4 w-4" />
+                          {pidiendoAyudaIA ? "Pensando..." : "Necesito más ayuda"}
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
