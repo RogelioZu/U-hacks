@@ -1,4 +1,4 @@
-import type { DiagnosticoAlumno } from "@/types/nexo";
+import type { DiagnosticoAlumno } from "@/types/semilla";
 
 // Mapa de niveles de dominio → etiqueta y color visual
 const NIVEL_CONFIG: Record<

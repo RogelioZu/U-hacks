@@ -28,7 +28,6 @@ type EstadoRespuesta = "pendiente" | "correcta" | "incorrecta";
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Transforma la fila de Supabase al tipo Pregunta del quiz. */
 function mapearPregunta(
   pa: {
     id: number;
@@ -49,7 +48,6 @@ function mapearPregunta(
 ): Pregunta {
   const p = pa.pregunta;
 
-  // Construir array de opciones mezclado
   const opciones: Opcion[] = [
     { clave: "A", texto: p.respuesta_correcta },
     { clave: "B", texto: p.respuesta_incorrecta_1 },
@@ -59,13 +57,11 @@ function mapearPregunta(
       : []),
   ];
 
-  // Mezclar opciones de forma determinista por índice (sin random para SSR)
   const mezcladas = opciones
     .map((op, i) => ({ op, sort: (i + indice * 3) % opciones.length }))
     .sort((a, b) => a.sort - b.sort)
     .map(({ op }, i) => ({ ...op, clave: ["A", "B", "C", "D"][i] }));
 
-  // La opción correcta es la que tiene el texto de respuesta_correcta
   const claveCorrecta =
     mezcladas.find((o) => o.texto === p.respuesta_correcta)?.clave ?? "A";
 
@@ -81,7 +77,7 @@ function mapearPregunta(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Preguntas de demo (usadas cuando no hay aplicación activa en Supabase)
+// Preguntas de demo
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PREGUNTAS_DEMO: Pregunta[] = [
@@ -97,8 +93,7 @@ const PREGUNTAS_DEMO: Pregunta[] = [
     ],
     correcta: "B",
     errorDistractor: "Sumar los numeradores sin convertir al mismo denominador",
-    pistaDistractor:
-      "Recuerda que antes de sumar fracciones necesitas un denominador común.",
+    pistaDistractor: "Recuerda que antes de sumar fracciones necesitas un denominador común.",
   },
   {
     id: -2,
@@ -137,7 +132,6 @@ const PREGUNTAS_DEMO: Pregunta[] = [
 export default function AlumnoQuizPage() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
-  // ── Estado ────────────────────────────────────────────────────────────────
   const [preguntas, setPreguntas] = useState<Pregunta[]>([]);
   const [cargando, setCargando] = useState(true);
   const [modoDemo, setModoDemo] = useState(false);
@@ -154,141 +148,86 @@ export default function AlumnoQuizPage() {
 
   const preguntaActual = preguntas[indice];
 
-  // ── Cargar preguntas desde Supabase al montar ─────────────────────────────
+  // ── Cargar preguntas desde Supabase ──────────────────────────────────────
   useEffect(() => {
     let cancelado = false;
 
     (async () => {
       try {
-        // 1. Obtener usuario autenticado
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+        const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) {
-          if (!cancelado) {
-            setPreguntas(PREGUNTAS_DEMO);
-            setModoDemo(true);
-            setCargando(false);
-          }
+          if (!cancelado) { setPreguntas(PREGUNTAS_DEMO); setModoDemo(true); setCargando(false); }
           return;
         }
 
-        // 2. Obtener ID de alumno
         const { data: alumnoData } = await supabase
-          .from("alumno")
-          .select("id")
-          .eq("auth_user_id", user.id)
-          .single();
+          .from("alumno").select("id").eq("auth_user_id", user.id).single();
 
         if (!alumnoData) {
-          if (!cancelado) {
-            setPreguntas(PREGUNTAS_DEMO);
-            setModoDemo(true);
-            setCargando(false);
-          }
+          if (!cancelado) { setPreguntas(PREGUNTAS_DEMO); setModoDemo(true); setCargando(false); }
           return;
         }
 
         if (!cancelado) setAlumnoId(alumnoData.id);
 
-        // 3. Buscar aplicación activa del grupo del alumno
         const { data: alumnoGrupo } = await supabase
-          .from("alumno")
-          .select("grupo_id")
-          .eq("id", alumnoData.id)
-          .single();
+          .from("alumno").select("grupo_id").eq("id", alumnoData.id).single();
 
         const { data: aplicacion } = await supabase
-          .from("aplicacion")
-          .select("id")
+          .from("aplicacion").select("id")
           .eq("grupo_id", alumnoGrupo?.grupo_id ?? 0)
           .eq("estado", "activa")
           .order("fecha_inicio", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(1).maybeSingle();
 
         if (!aplicacion) {
-          if (!cancelado) {
-            setPreguntas(PREGUNTAS_DEMO);
-            setModoDemo(true);
-            setCargando(false);
-          }
+          if (!cancelado) { setPreguntas(PREGUNTAS_DEMO); setModoDemo(true); setCargando(false); }
           return;
         }
 
         if (!cancelado) setAplicacionId(aplicacion.id);
 
-        // 4. Obtener preguntas de la aplicación (comunes + personalizadas del alumno)
         const { data: preguntasAplicadas } = await supabase
           .from("pregunta_aplicada")
-          .select(
-            `
+          .select(`
             id,
             pregunta:pregunta_id (
-              id,
-              texto_pregunta,
-              respuesta_correcta,
-              respuesta_incorrecta_1,
-              error_distractor_1,
-              pista_distractor_1,
-              respuesta_incorrecta_2,
-              error_distractor_2,
-              pista_distractor_2,
+              id, texto_pregunta, respuesta_correcta,
+              respuesta_incorrecta_1, error_distractor_1, pista_distractor_1,
+              respuesta_incorrecta_2, error_distractor_2, pista_distractor_2,
               respuesta_incorrecta_3
             )
-          `
-          )
+          `)
           .eq("aplicacion_id", aplicacion.id)
           .or(`alumno_id.is.null,alumno_id.eq.${alumnoData.id}`)
           .order("orden");
 
         if (!preguntasAplicadas || preguntasAplicadas.length === 0) {
-          if (!cancelado) {
-            setPreguntas(PREGUNTAS_DEMO);
-            setModoDemo(true);
-            setCargando(false);
-          }
+          if (!cancelado) { setPreguntas(PREGUNTAS_DEMO); setModoDemo(true); setCargando(false); }
           return;
         }
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mapped = (preguntasAplicadas as any[]).map((pa, i) =>
-          mapearPregunta(pa, i)
-        );
+        const mapped = (preguntasAplicadas as any[]).map((pa, i) => mapearPregunta(pa, i));
 
-        if (!cancelado) {
-          setPreguntas(mapped);
-          setModoDemo(false);
-          setCargando(false);
-        }
+        if (!cancelado) { setPreguntas(mapped); setModoDemo(false); setCargando(false); }
       } catch {
-        if (!cancelado) {
-          setPreguntas(PREGUNTAS_DEMO);
-          setModoDemo(true);
-          setCargando(false);
-        }
+        if (!cancelado) { setPreguntas(PREGUNTAS_DEMO); setModoDemo(true); setCargando(false); }
       }
     })();
 
     return () => { cancelado = true; };
   }, [supabase]);
 
-  // ── Guardar respuesta en Supabase ─────────────────────────────────────────
+  // ── Guardar respuesta ─────────────────────────────────────────────────────
   const guardarRespuesta = useCallback(
-    async (
-      pregunta: Pregunta,
-      clave: string,
-      esCorrecta: boolean,
-      tiempoSeg: number
-    ) => {
+    async (pregunta: Pregunta, clave: string, esCorrecta: boolean, tiempoSeg: number) => {
       if (modoDemo || !alumnoId || pregunta.pregunta_aplicada_id < 0) return;
-
       await supabase.from("respuesta_alumno").insert({
         alumno_id: alumnoId,
         pregunta_aplicada_id: pregunta.pregunta_aplicada_id,
-        respuesta_seleccionada:
-          pregunta.opciones.find((o) => o.clave === clave)?.texto ?? clave,
+        respuesta_seleccionada: pregunta.opciones.find((o) => o.clave === clave)?.texto ?? clave,
         es_correcta: esCorrecta,
         tiempo_respuesta_seg: tiempoSeg,
         modo_entrega: "online",
@@ -297,12 +236,8 @@ export default function AlumnoQuizPage() {
     [modoDemo, alumnoId, supabase]
   );
 
-  // ── Manejar selección de opción ───────────────────────────────────────────
   const [tiempoInicio, setTiempoInicio] = useState(Date.now());
-
-  useEffect(() => {
-    setTiempoInicio(Date.now());
-  }, [indice]);
+  useEffect(() => { setTiempoInicio(Date.now()); }, [indice]);
 
   async function seleccionarOpcion(clave: string) {
     if (terminado || procesando || estadoRespuesta !== "pendiente") return;
@@ -328,13 +263,11 @@ export default function AlumnoQuizPage() {
       return;
     }
 
-    // Respuesta incorrecta
     setEstadoRespuesta("incorrecta");
     setProcesando(true);
     await guardarRespuesta(preguntaActual, clave, false, tiempoSeg);
 
-    const respuestaTexto =
-      preguntaActual.opciones.find((op) => op.clave === clave)?.texto ?? clave;
+    const respuestaTexto = preguntaActual.opciones.find((op) => op.clave === clave)?.texto ?? clave;
 
     try {
       const respuesta = await fetch("/api/feedback", {
@@ -343,23 +276,16 @@ export default function AlumnoQuizPage() {
         body: JSON.stringify({
           pregunta: preguntaActual.texto,
           respuestaSeleccionada: respuestaTexto,
-          respuestaCorrecta: preguntaActual.opciones.find(
-            (o) => o.clave === preguntaActual.correcta
-          )?.texto ?? "",
+          respuestaCorrecta: preguntaActual.opciones.find((o) => o.clave === preguntaActual.correcta)?.texto ?? "",
           errorDistractor: preguntaActual.errorDistractor,
           pistaDistractor: preguntaActual.pistaDistractor,
         }),
       });
-
       const datos = await respuesta.json();
-      setFeedback(
-        datos.feedback ?? "Usa la pista y vuelve a intentarlo."
-      );
+      setFeedback(datos.feedback ?? "Usa la pista y vuelve a intentarlo.");
       setMensaje("Casi. Lee la orientación y vuelve a intentar.");
     } catch {
-      setFeedback(
-        `Pista: ${preguntaActual.pistaDistractor}`
-      );
+      setFeedback(`Pista: ${preguntaActual.pistaDistractor}`);
       setMensaje("Tu respuesta no fue correcta. Vuelve a intentar.");
     } finally {
       setProcesando(false);
@@ -372,173 +298,217 @@ export default function AlumnoQuizPage() {
     setFeedback(null);
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Loading ───────────────────────────────────────────────────────────────
   if (cargando) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950">
-        <div className="text-center text-zinc-400">
-          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-zinc-700 border-t-cyan-400" />
-          <p>Cargando quiz…</p>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="text-center">
+          <div
+            className="mx-auto mb-4 h-10 w-10 semilla-spin rounded-full border-4"
+            style={{ borderColor: "var(--s-border)", borderTopColor: "var(--s-orange)" }}
+          />
+          <p style={{ color: "var(--s-text-muted)" }}>Cargando quiz…</p>
         </div>
       </div>
     );
   }
 
+  // ── Resultados ────────────────────────────────────────────────────────────
+  if (terminado) {
+    const pct = Math.round((score / preguntas.length) * 100);
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center">
+        <div className="s-card p-10 text-center max-w-md w-full">
+          <div className="text-5xl mb-4">
+            {pct >= 80 ? "🎉" : pct >= 50 ? "💪" : "📚"}
+          </div>
+          <h2 className="text-2xl font-bold" style={{ color: "var(--s-navy)" }}>
+            ¡Quiz terminado!
+          </h2>
+          <p className="mt-2" style={{ color: "var(--s-text-muted)" }}>
+            Respondiste{" "}
+            <strong style={{ color: "var(--s-orange)" }}>{score}</strong> de{" "}
+            <strong>{preguntas.length}</strong> preguntas correctamente ({pct}%).
+          </p>
+          {modoDemo && (
+            <p className="mt-2 text-sm" style={{ color: "var(--s-text-muted)" }}>
+              Modo demo — tus respuestas no se guardaron.
+            </p>
+          )}
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <a href="/alumno/progreso" className="s-btn-primary">
+              Ver mi progreso
+            </a>
+            <a href="/alumno" className="s-btn-secondary">
+              Volver al inicio
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Quiz ──────────────────────────────────────────────────────────────────
+  const pctProgreso = (indice / preguntas.length) * 100;
+
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <div className="mx-auto flex min-h-screen max-w-4xl flex-col gap-8 px-6 py-16 sm:px-10">
-
-        {/* Encabezado */}
-        <section className="rounded-3xl border border-zinc-800/80 bg-zinc-900/95 p-8 shadow-2xl shadow-black/20">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm uppercase tracking-[0.25em] text-cyan-400/80">
-                Quiz semanal
-              </p>
-              <h1 className="mt-2 text-3xl font-semibold text-white">
-                Matemáticas — Semana actual
-              </h1>
-            </div>
-            <div className="flex flex-col items-end gap-1">
-              <span className="rounded-full bg-zinc-800 px-3 py-1 text-sm text-zinc-300">
-                {indice + 1} / {preguntas.length}
+    <div className="space-y-6">
+      {/* Encabezado / Progreso */}
+      <section className="s-card p-6">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <div>
+            <p
+              className="text-xs font-semibold uppercase tracking-widest"
+              style={{ color: "var(--s-orange)" }}
+            >
+              Quiz semanal
+            </p>
+            <h1 className="mt-1 text-xl font-bold" style={{ color: "var(--s-navy)" }}>
+              Matemáticas — Semana actual
+            </h1>
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <span
+              className="s-badge"
+              style={{ background: "var(--s-indigo-lt)", color: "var(--s-navy)" }}
+            >
+              {indice + 1} / {preguntas.length}
+            </span>
+            {modoDemo && (
+              <span
+                className="s-badge"
+                style={{ background: "var(--s-orange-lt)", color: "var(--s-orange)" }}
+              >
+                Demo
               </span>
-              {modoDemo && (
-                <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400">
-                  Demo
-                </span>
-              )}
-            </div>
+            )}
+          </div>
+        </div>
+
+        {/* Barra de progreso */}
+        <div
+          className="h-2 w-full overflow-hidden rounded-full"
+          style={{ background: "var(--s-indigo-lt)" }}
+        >
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{ width: `${pctProgreso}%`, background: "var(--s-orange)" }}
+          />
+        </div>
+      </section>
+
+      {/* Pregunta */}
+      {preguntaActual && (
+        <section className="s-card p-6 space-y-5">
+          {/* Enunciado */}
+          <div
+            className="rounded-xl p-5"
+            style={{ background: "var(--s-indigo-lt)" }}
+          >
+            <h2 className="text-lg font-semibold leading-7" style={{ color: "var(--s-navy)" }}>
+              {preguntaActual.texto}
+            </h2>
           </div>
 
-          {/* Barra de progreso */}
-          <div className="mt-5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
-            <div
-              className="h-full rounded-full bg-cyan-500 transition-all duration-500"
-              style={{ width: `${((indice) / preguntas.length) * 100}%` }}
-            />
-          </div>
-        </section>
+          {/* Opciones */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            {preguntaActual.opciones.map((opcion) => {
+              let estilo: React.CSSProperties = {
+                background: "var(--s-surface)",
+                borderColor: "var(--s-border)",
+                color: "var(--s-text)",
+              };
 
-        {/* Pregunta */}
-        {!terminado && preguntaActual && (
-          <section className="rounded-3xl border border-zinc-800/80 bg-zinc-900/95 p-8 shadow-black/10">
-            <div className="space-y-6">
-              {/* Enunciado */}
-              <div className="rounded-2xl bg-zinc-950/80 p-6">
-                <h2 className="text-xl font-semibold leading-8 text-white sm:text-2xl">
-                  {preguntaActual.texto}
-                </h2>
-              </div>
+              if (estadoRespuesta === "correcta") {
+                if (opcion.clave === preguntaActual.correcta) {
+                  estilo = {
+                    background: "#F0FDF4",
+                    borderColor: "#86EFAC",
+                    color: "#15803D",
+                  };
+                } else {
+                  estilo = {
+                    background: "#F9FAFB",
+                    borderColor: "var(--s-border)",
+                    color: "#9CA3AF",
+                  };
+                }
+              }
 
-              {/* Opciones */}
-              <div className="grid gap-3 sm:grid-cols-2">
-                {preguntaActual.opciones.map((opcion) => {
-                  let clases =
-                    "rounded-2xl border px-5 py-5 text-left transition focus:outline-none ";
-                  if (estadoRespuesta === "pendiente" || estadoRespuesta === "incorrecta") {
-                    clases +=
-                      "border-zinc-800/80 bg-zinc-950/90 text-white hover:border-cyan-400/50 hover:bg-zinc-900/95 ";
-                    if (procesando) clases += "cursor-wait opacity-70 ";
-                  } else if (estadoRespuesta === "correcta") {
-                    clases +=
-                      opcion.clave === preguntaActual.correcta
-                        ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-200 "
-                        : "border-zinc-800/40 bg-zinc-950/40 text-zinc-600 cursor-not-allowed ";
-                  }
-
-                  return (
-                    <button
-                      key={opcion.clave}
-                      id={`opcion-${opcion.clave}`}
-                      type="button"
-                      onClick={() => seleccionarOpcion(opcion.clave)}
-                      className={clases}
-                      disabled={
-                        procesando ||
-                        estadoRespuesta === "correcta" ||
-                        terminado
-                      }
-                    >
-                      <span className="text-sm font-semibold text-cyan-300">
-                        {opcion.clave}
-                      </span>
-                      <p className="mt-2 text-base leading-6">{opcion.texto}</p>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Mensaje y feedback */}
-              {mensaje && (
-                <div
-                  className={`rounded-2xl border p-5 ${
-                    estadoRespuesta === "correcta"
-                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
-                      : "border-amber-500/30 bg-amber-500/10 text-amber-100"
-                  }`}
+              return (
+                <button
+                  key={opcion.clave}
+                  id={`opcion-${opcion.clave}`}
+                  type="button"
+                  onClick={() => seleccionarOpcion(opcion.clave)}
+                  disabled={procesando || estadoRespuesta === "correcta" || terminado}
+                  className="group rounded-2xl border-2 px-5 py-4 text-left transition-all hover:shadow-md disabled:cursor-not-allowed"
+                  style={{
+                    ...estilo,
+                    ...(procesando ? { opacity: 0.65 } : {}),
+                  }}
                 >
-                  <p className="font-semibold">{mensaje}</p>
-                  {feedback && (
-                    <p className="mt-3 text-sm leading-6 text-zinc-300">
-                      {feedback}
-                    </p>
-                  )}
-                  {estadoRespuesta === "incorrecta" && !procesando && (
-                    <button
-                      id="btn-intentar-nuevo"
-                      type="button"
-                      onClick={intentarDeNuevo}
-                      className="mt-4 rounded-xl bg-amber-500/20 px-4 py-2 text-sm font-semibold text-amber-300 transition hover:bg-amber-500/30"
-                    >
-                      Volver a intentar ↩
-                    </button>
-                  )}
-                </div>
-              )}
+                  <span
+                    className="text-xs font-bold"
+                    style={{ color: "var(--s-orange)" }}
+                  >
+                    {opcion.clave}
+                  </span>
+                  <p className="mt-1 text-sm font-medium leading-5">{opcion.texto}</p>
+                </button>
+              );
+            })}
+          </div>
 
-              {procesando && (
-                <p className="text-center text-sm text-zinc-500 animate-pulse">
-                  Generando orientación personalizada…
+          {/* Feedback */}
+          {mensaje && (
+            <div
+              className="rounded-2xl border-2 p-5"
+              style={
+                estadoRespuesta === "correcta"
+                  ? { background: "#F0FDF4", borderColor: "#86EFAC" }
+                  : { background: "var(--s-orange-lt)", borderColor: "#FED7AA" }
+              }
+            >
+              <p
+                className="font-semibold"
+                style={{
+                  color:
+                    estadoRespuesta === "correcta"
+                      ? "var(--s-success)"
+                      : "var(--s-orange)",
+                }}
+              >
+                {mensaje}
+              </p>
+              {feedback && (
+                <p className="mt-2 text-sm leading-6" style={{ color: "var(--s-text-muted)" }}>
+                  {feedback}
                 </p>
               )}
+              {estadoRespuesta === "incorrecta" && !procesando && (
+                <button
+                  id="btn-intentar-nuevo"
+                  type="button"
+                  onClick={intentarDeNuevo}
+                  className="s-btn-secondary mt-4 text-sm"
+                >
+                  ↩ Volver a intentar
+                </button>
+              )}
             </div>
-          </section>
-        )}
+          )}
 
-        {/* Pantalla de resultados */}
-        {terminado && (
-          <section className="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-10 text-center shadow-black/10">
-            <p className="text-5xl">🎉</p>
-            <h2 className="mt-4 text-3xl font-semibold text-white">
-              ¡Quiz terminado!
-            </h2>
-            <p className="mt-3 text-zinc-300">
-              Respondiste <strong className="text-emerald-300">{score}</strong> de{" "}
-              <strong>{preguntas.length}</strong> preguntas correctamente.
+          {procesando && (
+            <p
+              className="text-center text-sm animate-pulse"
+              style={{ color: "var(--s-text-muted)" }}
+            >
+              Generando orientación personalizada con IA…
             </p>
-            <p className="mt-1 text-sm text-zinc-500">
-              {modoDemo
-                ? "Modo demo — regístrate para guardar tu progreso."
-                : "Tus respuestas fueron registradas. Tu docente las revisará pronto."}
-            </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <a
-                href="/alumno/progreso"
-                className="rounded-2xl bg-emerald-500 px-6 py-3 font-semibold text-zinc-950 transition hover:bg-emerald-400"
-              >
-                Ver mi progreso
-              </a>
-              <a
-                href="/alumno"
-                className="rounded-2xl border border-zinc-700 px-6 py-3 font-semibold text-zinc-300 transition hover:border-zinc-500"
-              >
-                Volver al inicio
-              </a>
-            </div>
-          </section>
-        )}
-      </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

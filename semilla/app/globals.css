@@ -1,31 +1,40 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap");
 @import "tailwindcss";
 
-/* ── Sistema de diseño Nexo ─────────────────────────────────────── */
-:root {
-  /* Colores institucionales — azul SEP */
-  --nexo-azul: #1d4ed8;
-  --nexo-azul-oscuro: #1e3a8a;
-  --nexo-verde: #16a34a;
-  --nexo-ambar: #d97706;
-  --nexo-rojo: #dc2626;
+/* ══════════════════════════════════════════════════════════════════
+   SEMILLA — Sistema de Diseño
+   Inspirado en Ellsy Education Illustrations:
+   fondo azul perla · azul marino · naranja vibrante · rosa suave
+   ══════════════════════════════════════════════════════════════════ */
 
-  --background: #f8fafc;
-  --foreground: #0f172a;
+:root {
+  /* Colores principales */
+  --s-bg:         #EEF1FF;   /* fondo base azul perla */
+  --s-surface:    #FFFFFF;   /* superficies / cards */
+  --s-navy:       #1E2D7D;   /* azul marino — principal */
+  --s-navy-dark:  #14205A;   /* azul más oscuro */
+  --s-orange:     #FF5C35;   /* naranja — CTAs */
+  --s-orange-lt:  #FFF0EC;   /* naranja claro */
+  --s-rose:       #FFCFD8;   /* rosa suave — cards secundarias */
+  --s-rose-dark:  #FF8FAB;   /* rosa medio */
+  --s-indigo:     #6366F1;   /* índigo — acento */
+  --s-indigo-lt:  #EEF2FF;   /* índigo muy claro */
+  --s-border:     #D1D5FF;   /* bordes */
+  --s-text:       #111827;   /* texto principal */
+  --s-text-muted: #6B7280;   /* texto secundario */
+  --s-success:    #16A34A;
+  --s-warning:    #D97706;
+  --s-error:      #DC2626;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--s-bg);
+  --color-foreground: var(--s-text);
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
 }
 
-/* ── Base ───────────────────────────────────────────────────────── */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+/* ── Reset y base ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
 
 html {
   scroll-behavior: smooth;
@@ -34,31 +43,122 @@ html {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--s-bg);
+  color: var(--s-text);
   font-family: "Inter", system-ui, -apple-system, sans-serif;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
-/* ── Transiciones globales de enfoque ───────────────────────────── */
+/* ── Scrollbar ─────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--s-bg); }
+::-webkit-scrollbar-thumb { background: var(--s-border); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #A5B4FC; }
+
+/* ── Focus visible global ──────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid var(--nexo-azul);
+  outline: 2px solid var(--s-orange);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
-/* ── Scrollbar personalizada (Webkit) ───────────────────────────── */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* ── Utilidades de Semilla ─────────────────────────────────────── */
+
+/* Card base */
+.s-card {
+  background: var(--s-surface);
+  border: 1.5px solid var(--s-border);
+  border-radius: 20px;
+  box-shadow: 0 2px 16px 0 rgba(30, 45, 125, 0.07);
 }
-::-webkit-scrollbar-track {
-  background: #f1f5f9;
+
+/* Botón principal naranja */
+.s-btn-primary {
+  background: var(--s-orange);
+  color: #fff;
+  border-radius: 14px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  transition: background 0.15s, transform 0.1s;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+.s-btn-primary:hover { background: #E64D2A; }
+.s-btn-primary:active { transform: scale(0.97); }
+.s-btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Botón secundario */
+.s-btn-secondary {
+  background: var(--s-indigo-lt);
+  color: var(--s-navy);
+  border-radius: 14px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border: 1.5px solid var(--s-border);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.s-btn-secondary:hover { background: #E0E7FF; border-color: #818CF8; }
+
+/* Botón outline azul marino */
+.s-btn-outline {
+  background: transparent;
+  color: var(--s-navy);
+  border: 1.5px solid var(--s-navy);
+  border-radius: 14px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.s-btn-outline:hover { background: var(--s-indigo-lt); }
+
+/* Input base */
+.s-input {
+  width: 100%;
+  border: 1.5px solid var(--s-border);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem;
+  background: #F8F9FF;
+  color: var(--s-text);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+.s-input:focus {
+  border-color: var(--s-navy);
+  box-shadow: 0 0 0 3px rgba(30, 45, 125, 0.12);
+}
+.s-input::placeholder { color: #9CA3AF; }
+
+/* Etiqueta de badge */
+.s-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+
+/* Animación de spin */
+@keyframes semilla-spin {
+  to { transform: rotate(360deg); }
+}
+.semilla-spin {
+  animation: semilla-spin 0.9s linear infinite;
 }

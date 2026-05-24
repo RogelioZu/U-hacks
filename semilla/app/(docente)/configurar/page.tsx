@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import SelectorTemas from "@/components/docente/SelectorTemas";
-import type { Materia, Tema } from "@/types/nexo";
+import type { Materia, Tema } from "@/types/semilla";
 
 export const metadata: Metadata = {
   title: "Configurar semana — Nexo Docente",

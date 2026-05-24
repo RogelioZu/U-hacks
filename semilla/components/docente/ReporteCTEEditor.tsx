@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { RespuestaGenerarReporte } from "@/types/nexo";
+import type { RespuestaGenerarReporte } from "@/types/semilla";
 
 interface Props {
   grupoId: number;

@@ -26,7 +26,7 @@ export default function LoginPage() {
     setLoading(false);
 
     if (error) {
-      setError(error.message);
+      setError("Correo o contraseña incorrectos. Intenta de nuevo.");
       return;
     }
 
@@ -45,9 +45,9 @@ export default function LoginPage() {
 
     if (
       rol === "docente" ||
-      rol === "nexo.docente" ||
+      rol === "semilla.docente" ||
       rol === "directivo" ||
-      rol === "nexo.directivo"
+      rol === "semilla.directivo"
     ) {
       router.push("/tablero");
     } else {
@@ -56,56 +56,175 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-6 py-16 sm:px-10">
-        <div className="rounded-3xl border border-zinc-800/80 bg-zinc-900/95 p-10 shadow-2xl shadow-black/20 backdrop-blur-xl">
-          <h1 className="text-4xl font-semibold text-white">Ingresar a Nexo</h1>
-          <p className="mt-3 max-w-xl text-zinc-400">
-            Accede con tu cuenta de estudiante para continuar con el quiz y ver
-            tu progreso.
+    <div
+      className="min-h-dvh flex items-center justify-center px-4 py-12"
+      style={{ background: "var(--s-bg)" }}
+    >
+      {/* Formas decorativas de fondo */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 overflow-hidden"
+      >
+        <div
+          className="absolute -top-32 -right-32 h-96 w-96 rounded-full opacity-20"
+          style={{ background: "var(--s-orange)" }}
+        />
+        <div
+          className="absolute -bottom-24 -left-24 h-80 w-80 rounded-full opacity-15"
+          style={{ background: "var(--s-navy)" }}
+        />
+        <div
+          className="absolute top-1/2 right-1/4 h-48 w-48 rounded-full opacity-10"
+          style={{ background: "var(--s-rose)" }}
+        />
+      </div>
+
+      <div className="relative w-full max-w-md">
+        {/* Logo / cabecera */}
+        <div className="mb-8 text-center">
+          <div
+            className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg"
+            style={{ background: "var(--s-navy)" }}
+          >
+            {/* Ícono hoja/semilla */}
+            <svg
+              className="h-8 w-8 text-white"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.8}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 3C7 3 3 7 3 12s4 9 9 9 9-4 9-9M12 3c2 4 3 7 0 9M12 3c1 3 3 6 5 7"
+              />
+            </svg>
+          </div>
+          <h1
+            className="text-3xl font-bold"
+            style={{ color: "var(--s-navy)" }}
+          >
+            Semilla
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--s-text-muted)" }}>
+            Plataforma educativa para Telesecundarias
+          </p>
+        </div>
+
+        {/* Card del formulario */}
+        <div className="s-card p-8">
+          <h2
+            className="text-xl font-semibold"
+            style={{ color: "var(--s-text)" }}
+          >
+            Ingresar al aula
+          </h2>
+          <p
+            className="mt-1 text-sm"
+            style={{ color: "var(--s-text-muted)" }}
+          >
+            Accede con tu cuenta institucional para continuar.
           </p>
 
-          <form className="mt-10 space-y-6" onSubmit={handleSubmit}>
-            <label className="block text-sm font-medium text-zinc-200">
-              Correo institucional
+          <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium mb-1.5"
+                style={{ color: "var(--s-text)" }}
+              >
+                Correo institucional
+              </label>
               <input
+                id="email"
                 type="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
-                placeholder="alumno@nexo.edu.mx"
+                onChange={(e) => setEmail(e.target.value)}
+                className="s-input"
+                placeholder="alumno@semilla.edu.mx"
                 required
+                autoComplete="email"
               />
-            </label>
+            </div>
 
-            <label className="block text-sm font-medium text-zinc-200">
-              Contraseña
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium mb-1.5"
+                style={{ color: "var(--s-text)" }}
+              >
+                Contraseña
+              </label>
               <input
+                id="password"
                 type="password"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none transition focus:border-cyan-400"
-                placeholder="********"
+                onChange={(e) => setPassword(e.target.value)}
+                className="s-input"
+                placeholder="••••••••"
                 required
+                autoComplete="current-password"
               />
-            </label>
+            </div>
 
-            {error ? (
-              <div className="rounded-2xl border border-red-700/50 bg-red-950/70 p-4 text-sm text-red-200">
+            {error && (
+              <div
+                className="rounded-xl border p-4 text-sm"
+                style={{
+                  background: "#FFF1F2",
+                  borderColor: "#FECDD3",
+                  color: "var(--s-error)",
+                }}
+              >
                 {error}
               </div>
-            ) : null}
+            )}
 
             <button
+              id="btn-login"
               type="submit"
               disabled={loading}
-              className="inline-flex w-full items-center justify-center rounded-2xl bg-cyan-500 px-5 py-3 text-base font-semibold text-zinc-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="s-btn-primary w-full"
             >
-              {loading ? "Ingresando…" : "Ingresar al aula"}
+              {loading ? (
+                <>
+                  <svg
+                    className="semilla-spin h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                  Ingresando…
+                </>
+              ) : (
+                "Ingresar al aula"
+              )}
             </button>
           </form>
         </div>
-      </main>
+
+        {/* Footer */}
+        <p
+          className="mt-6 text-center text-xs"
+          style={{ color: "var(--s-text-muted)" }}
+        >
+          Semilla · SEP Telesecundarias · México
+        </p>
+      </div>
     </div>
   );
 }

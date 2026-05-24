@@ -4,10 +4,10 @@ import type { Metadata } from "next";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import DiagnosticoGrupo from "@/components/docente/DiagnosticoGrupo";
 import AlertaRiesgo from "@/components/docente/AlertaRiesgo";
-import type { DiagnosticoAlumno } from "@/types/nexo";
+import type { DiagnosticoAlumno } from "@/types/semilla";
 
 export const metadata: Metadata = {
-  title: "Tablero Docente — Nexo",
+  title: "Tablero Docente — Semilla",
   description:
     "Diagnóstico semanal del grupo y alertas de alumnos en riesgo para docentes de Telesecundaria.",
 };
@@ -22,8 +22,8 @@ export default async function PaginaTablero() {
 
   if (!user) redirect("/login");
 
-  const rol = (user.user_metadata?.rol as string | undefined) ?? "";
-  if (rol !== "docente" && rol !== "directivo") redirect("/acceso-denegado");
+  const rol = (user.user_metadata?.rol as string | undefined)?.trim().toLowerCase() ?? "";
+  if (rol !== "docente" && rol !== "directivo" && rol !== "semilla.docente" && rol !== "semilla.directivo") redirect("/acceso-denegado");
 
   // ── Obtener el grupo del docente autenticado ──────────────────────────
   const { data: profesor } = await supabase
@@ -35,12 +35,15 @@ export default async function PaginaTablero() {
   if (!profesor?.grupo_id) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold text-slate-800">Tablero docente</h1>
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center">
-          <p className="font-medium text-amber-800">
+        <h1 className="text-2xl font-bold" style={{ color: "var(--s-navy)" }}>Tablero docente</h1>
+        <div
+          className="rounded-2xl border p-6 text-center"
+          style={{ background: "#FFFBEB", borderColor: "#FDE68A" }}
+        >
+          <p className="font-medium" style={{ color: "#92400E" }}>
             No tienes un grupo asignado aún.
           </p>
-          <p className="mt-1 text-sm text-amber-600">
+          <p className="mt-1 text-sm" style={{ color: "#B45309" }}>
             Contacta al administrador para que te asigne un grupo.
           </p>
         </div>

@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import type { ErrorApi } from "@/types/nexo";
+import type { ErrorApi } from "@/types/semilla";
 
 interface Params {
   params: Promise<{ id: string }>;

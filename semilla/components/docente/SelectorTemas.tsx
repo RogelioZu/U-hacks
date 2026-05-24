@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { guardarTemas } from "@/app/(docente)/acciones";
-import type { Materia, Tema } from "@/types/nexo";
+import type { Materia, Tema } from "@/types/semilla";
 
 interface Props {
   materias: Materia[];

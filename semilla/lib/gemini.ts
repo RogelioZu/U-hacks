@@ -1,4 +1,4 @@
-// Wrapper central de IA para Nexo.
+// Wrapper central de IA para Semilla.
 // Usa la API de Google Gemini (AI Studio) en lugar de OpenAI.
 // Modelo único configurable: cámbialo aquí y aplica a toda la app.
 const MODELO = "gemini-2.5-flash";

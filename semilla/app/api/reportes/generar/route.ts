@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { generarReporteCTE, type DatosSemana } from "@/lib/gemini";
-import type { RespuestaGenerarReporte, ErrorApi } from "@/types/nexo";
+import type { RespuestaGenerarReporte, ErrorApi } from "@/types/semilla";
 
 // API route que genera un borrador de reporte CTE con IA.
 // Solo accesible para docentes autenticados.
