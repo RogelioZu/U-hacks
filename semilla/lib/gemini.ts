@@ -66,9 +66,6 @@ Pista pedagógica que debes transmitir: ${datos.pistaDistractor}
     config: {
       temperature: 0.6,
       maxOutputTokens: 256,
-      // gemini-2.5-flash razona por defecto; sin esto puede gastar el presupuesto
-      // de tokens "pensando" y devolver vacío. No necesitamos cadena de pensamiento.
-      thinkingConfig: { thinkingBudget: 0 },
       systemInstruction: SYSTEM_RETROALIMENTACION,
     },
   });
@@ -118,7 +115,6 @@ Errores más frecuentes detectados: ${datos.erroresFrecuentes.join("; ") || "sin
     config: {
       temperature: 0.5,
       maxOutputTokens: 1200,
-      thinkingConfig: { thinkingBudget: 0 },
       systemInstruction: SYSTEM_REPORTE_CTE,
     },
   });
@@ -187,7 +183,6 @@ export async function* responderChatStream(opciones: {
     config: {
       temperature: opciones.audiencia === "alumno" ? 0.6 : 0.5,
       maxOutputTokens: 800,
-      thinkingConfig: { thinkingBudget: 0 },
       systemInstruction,
     },
   });

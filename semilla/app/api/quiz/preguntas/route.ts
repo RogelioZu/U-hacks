@@ -45,7 +45,7 @@ export async function GET() {
 
     if (!aplicacion) {
       return NextResponse.json({
-        modo: "demo",
+        modo: "no-activo",
         preguntas: [],
         alumnoId: alumnoData.id,
       });
@@ -78,7 +78,7 @@ export async function GET() {
 
     if (!preguntasAplicadas || preguntasAplicadas.length === 0) {
       return NextResponse.json({
-        modo: "demo",
+        modo: "no-activo",
         preguntas: [],
         alumnoId: alumnoData.id,
       });

@@ -160,6 +160,7 @@ const PREGUNTAS_DEMO: Pregunta[] = [
 export default function AlumnoQuizPage() {
   const [preguntas, setPreguntas] = useState<Pregunta[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [quizNoActivo, setQuizNoActivo] = useState(false);
   const [modoDemo, setModoDemo] = useState(false);
   const [aplicacionId, setAplicacionId] = useState<number | null>(null);
   const [alumnoId, setAlumnoId] = useState<number | null>(null);
@@ -189,7 +190,11 @@ export default function AlumnoQuizPage() {
 
         if (cancelado) return;
 
-        if (datos.modo === "real" && datos.preguntas?.length > 0) {
+        if (datos.modo === "no-activo") {
+          setQuizNoActivo(true);
+          if (datos.alumnoId) setAlumnoId(datos.alumnoId);
+          console.log("[Quiz] → Modo no-activo (alumnoId:", datos.alumnoId, ")");
+        } else if (datos.modo === "real" && datos.preguntas?.length > 0) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const mapped = (datos.preguntas as any[]).map((pa, i) => mapearPregunta(pa, i));
           setPreguntas(mapped);
@@ -359,6 +364,31 @@ export default function AlumnoQuizPage() {
           <p className="mt-4 font-medium" style={{ color: "var(--s-navy)" }}>
             Preparando tu quiz…
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Quiz No Activo ──────────────────────────────────────────────────────────
+  if (quizNoActivo) {
+    return (
+      <div className="relative flex min-h-[60vh] flex-col items-center justify-center overflow-hidden">
+        <BlobsDecorativos />
+        <div className="relative z-10 flex flex-col items-center s-card p-10 text-center max-w-sm">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full" style={{ background: "var(--s-orange-lt)", color: "var(--s-orange)" }}>
+            <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="mt-4 text-xl font-bold" style={{ color: "var(--s-navy)" }}>
+            ¡Aún no es hora del quiz!
+          </h2>
+          <p className="mt-2 text-sm" style={{ color: "var(--s-text-muted)" }}>
+            Tu profesor todavía no ha configurado el quiz de esta semana. Vuelve más tarde cuando te lo indique.
+          </p>
+          <a href="/alumno" className="s-btn-primary mt-6">
+            Volver al inicio
+          </a>
         </div>
       </div>
     );

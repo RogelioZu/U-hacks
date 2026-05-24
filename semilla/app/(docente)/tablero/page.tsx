@@ -119,6 +119,19 @@ export default async function PaginaTablero() {
     .select("semana_id, tema:tema_id(nombre)")
     .eq("grupo_id", grupo.id);
 
+  // ── Verificar si el quiz ya fue configurado (existe aplicación) ────────
+  let aplicacionConfigurada = false;
+  if (semanaActiva) {
+    const { data: appActiva } = await admin
+      .from("aplicacion")
+      .select("id")
+      .eq("semana_id", semanaActiva.id)
+      .eq("grupo_id", grupo.id)
+      .eq("estado", "activa")
+      .maybeSingle();
+    aplicacionConfigurada = !!appActiva;
+  }
+
   // ── Procesar diagnóstico de la semana activa ───────────────────────────
   let diagnosticos: DiagnosticoAlumno[] = [];
   if (semanaActiva) {
@@ -254,7 +267,9 @@ export default async function PaginaTablero() {
           </div>
         )}
 
-        <AlertaRiesgo alumnosEnRiesgo={alumnosEnRiesgo} totalAlumnos={totalAlumnos} />
+        {semanaActiva && aplicacionConfigurada && (
+          <AlertaRiesgo alumnosEnRiesgo={alumnosEnRiesgo} totalAlumnos={totalAlumnos} />
+        )}
 
         {!semanaActiva && (
           <div className="rounded-xl border border-slate-200 bg-white p-6 text-center">
@@ -263,7 +278,14 @@ export default async function PaginaTablero() {
           </div>
         )}
 
-        {semanaActiva && (
+        {semanaActiva && !aplicacionConfigurada && (
+          <div className="rounded-xl border border-slate-200 bg-white p-6 text-center">
+            <p className="font-medium text-slate-600">Aún no configuras los temas para esta semana.</p>
+            <p className="mt-1 text-sm text-slate-400">El quiz no estará disponible para tus alumnos hasta que lo configures.</p>
+          </div>
+        )}
+
+        {semanaActiva && aplicacionConfigurada && (
           <div className="space-y-2">
             <h2 className="text-base font-semibold text-slate-700">Diagnóstico por alumno</h2>
             <DiagnosticoGrupo diagnosticos={diagnosticos} />
