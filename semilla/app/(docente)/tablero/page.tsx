@@ -1,0 +1,234 @@
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import type { Metadata } from "next";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import DiagnosticoGrupo from "@/components/docente/DiagnosticoGrupo";
+import AlertaRiesgo from "@/components/docente/AlertaRiesgo";
+import type { DiagnosticoAlumno } from "@/types/nexo";
+
+export const metadata: Metadata = {
+  title: "Tablero Docente — Nexo",
+  description:
+    "Diagnóstico semanal del grupo y alertas de alumnos en riesgo para docentes de Telesecundaria.",
+};
+
+export default async function PaginaTablero() {
+  const supabase = await createSupabaseServerClient();
+
+  // Verificar sesión y rol (segunda capa tras proxy.ts)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login");
+
+  const rol = (user.user_metadata?.rol as string | undefined) ?? "";
+  if (rol !== "docente" && rol !== "directivo") redirect("/acceso-denegado");
+
+  // ── Obtener el grupo del docente autenticado ──────────────────────────
+  const { data: profesor } = await supabase
+    .from("profesor")
+    .select("id, grupo_id, grupo:grupo_id(id, nombre, grado)")
+    .eq("auth_user_id", user.id)
+    .single();
+
+  if (!profesor?.grupo_id) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold text-slate-800">Tablero docente</h1>
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center">
+          <p className="font-medium text-amber-800">
+            No tienes un grupo asignado aún.
+          </p>
+          <p className="mt-1 text-sm text-amber-600">
+            Contacta al administrador para que te asigne un grupo.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const grupo = (profesor.grupo as unknown) as { id: number; nombre: string; grado: number } | null;
+
+  // ── Obtener la semana activa ──────────────────────────────────────────
+  const { data: semanaActiva } = await supabase
+    .from("semana")
+    .select("id, numero, fecha_inicio, fecha_fin")
+    .eq("activa", true)
+    .single();
+
+  // ── Obtener diagnósticos del grupo para la semana activa ─────────────
+  let diagnosticos: DiagnosticoAlumno[] = [];
+
+  if (semanaActiva) {
+    const { data: datosDiag } = await supabase
+      .from("diagnostico_alumno")
+      .select(
+        `
+        id,
+        alumno_id,
+        grupo_id,
+        semana_id,
+        materia_id,
+        nivel_dominio,
+        requiere_repaso,
+        materia:materia_id(nombre)
+      `,
+      )
+      .eq("grupo_id", profesor.grupo_id)
+      .eq("semana_id", semanaActiva.id);
+
+    diagnosticos = (datosDiag ?? []).map((d, indice) => ({
+      id: d.id,
+      alumno_id: d.alumno_id,
+      // Alias público: "Alumno 01", "Alumno 02"... nunca el nombre real
+      alias: `Alumno ${String(indice + 1).padStart(2, "0")}`,
+      grupo_id: d.grupo_id,
+      semana_id: d.semana_id,
+      materia_id: d.materia_id,
+      materia_nombre:
+        ((d.materia as unknown) as { nombre: string } | null)?.nombre ?? "—",
+      nivel_dominio: d.nivel_dominio as 0 | 1 | 2 | 3,
+      requiere_repaso: d.requiere_repaso,
+    }));
+  }
+
+  const alumnosEnRiesgo = diagnosticos.filter((d) => d.requiere_repaso).length;
+  const totalAlumnos = diagnosticos.length;
+
+  // Calcular estadísticas rápidas
+  const pctDominio =
+    totalAlumnos > 0
+      ? Math.round(
+          (diagnosticos.filter((d) => d.nivel_dominio >= 2).length /
+            totalAlumnos) *
+            100,
+        )
+      : null;
+
+  return (
+    <div className="space-y-6">
+      {/* Encabezado */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">
+            Tablero docente
+          </h1>
+          {grupo && (
+            <p className="mt-0.5 text-sm text-slate-500">
+              {grupo.nombre} · {semanaActiva ? `Semana ${semanaActiva.numero}` : "Sin semana activa"}
+            </p>
+          )}
+        </div>
+
+        {/* Acciones rápidas */}
+        <div className="flex gap-2">
+          <Link
+            href="/docente/configurar"
+            id="btn-ir-configurar"
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 active:scale-95"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Configurar semana
+          </Link>
+
+          <Link
+            href="/docente/reporte"
+            id="btn-ir-reporte"
+            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+            </svg>
+            Reporte CTE
+          </Link>
+        </div>
+      </div>
+
+      {/* Tarjetas de estadísticas rápidas */}
+      {totalAlumnos > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+              Alumnos evaluados
+            </p>
+            <p className="mt-1 text-3xl font-bold text-slate-800">
+              {totalAlumnos}
+            </p>
+          </div>
+
+          {pctDominio !== null && (
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+                Dominio grupal
+              </p>
+              <p
+                className={`mt-1 text-3xl font-bold ${
+                  pctDominio >= 70
+                    ? "text-green-600"
+                    : pctDominio >= 50
+                      ? "text-amber-600"
+                      : "text-red-600"
+                }`}
+              >
+                {pctDominio}%
+              </p>
+            </div>
+          )}
+
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+              En riesgo
+            </p>
+            <p
+              className={`mt-1 text-3xl font-bold ${
+                alumnosEnRiesgo === 0 ? "text-green-600" : "text-amber-600"
+              }`}
+            >
+              {alumnosEnRiesgo}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Banner de alerta / confirmación */}
+      <AlertaRiesgo
+        alumnosEnRiesgo={alumnosEnRiesgo}
+        totalAlumnos={totalAlumnos}
+      />
+
+      {/* Sin semana activa */}
+      {!semanaActiva && (
+        <div className="rounded-xl border border-slate-200 bg-white p-6 text-center">
+          <p className="font-medium text-slate-600">
+            No hay semana activa en este momento.
+          </p>
+          <p className="mt-1 text-sm text-slate-400">
+            Cuando el administrador active una semana, aquí verás el diagnóstico del grupo.
+          </p>
+        </div>
+      )}
+
+      {/* Tabla de diagnóstico */}
+      {semanaActiva && (
+        <div className="space-y-2">
+          <h2 className="text-base font-semibold text-slate-700">
+            Diagnóstico por alumno
+          </h2>
+          <DiagnosticoGrupo diagnosticos={diagnosticos} />
+        </div>
+      )}
+
+      {/* Leyenda de niveles */}
+      <div className="flex flex-wrap gap-2 text-xs">
+        <span className="rounded-full bg-red-100 px-2.5 py-1 text-red-700">Inicio (0)</span>
+        <span className="rounded-full bg-orange-100 px-2.5 py-1 text-orange-700">Básico (1)</span>
+        <span className="rounded-full bg-blue-100 px-2.5 py-1 text-blue-700">Avanzado (2)</span>
+        <span className="rounded-full bg-green-100 px-2.5 py-1 text-green-700">Dominio (3)</span>
+      </div>
+    </div>
+  );
+}
