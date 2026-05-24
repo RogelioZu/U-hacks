@@ -7,12 +7,16 @@ import { NextResponse, type NextRequest } from "next/server";
 // La autorización real (de fondo) vive en las políticas RLS de Postgres.
 
 // Prefijo de ruta -> roles permitidos.
+const ROL_DOCENTE = ["docente", "nexo.docente", "directivo", "nexo.directivo"];
+
 const RUTAS_PROTEGIDAS: { prefijo: string; roles: string[] }[] = [
   { prefijo: "/alumno", roles: ["alumno", "nexo.alumno"] },
-  {
-    prefijo: "/docente",
-    roles: ["docente", "nexo.docente", "directivo", "nexo.directivo"],
-  },
+  // (docente) route group expone las rutas directamente sin prefijo /docente
+  { prefijo: "/tablero", roles: ROL_DOCENTE },
+  { prefijo: "/configurar", roles: ROL_DOCENTE },
+  { prefijo: "/reporte", roles: ROL_DOCENTE },
+  // Prefijo alternativo si la estructura de carpetas cambia a /docente/*
+  { prefijo: "/docente", roles: ROL_DOCENTE },
   { prefijo: "/admin", roles: ["admin_zonal", "nexo.admin_zonal"] },
 ];
 

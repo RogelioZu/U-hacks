@@ -2,13 +2,19 @@ import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   const payload = await request.json();
-  const { pregunta, respuestaSeleccionada, errorDistractor, pistaDistractor } =
-    payload as {
-      pregunta: string;
-      respuestaSeleccionada: string;
-      errorDistractor: string;
-      pistaDistractor: string;
-    };
+  const {
+    pregunta,
+    respuestaSeleccionada,
+    errorDistractor,
+    pistaDistractor,
+    respuestaCorrecta,
+  } = payload as {
+    pregunta: string;
+    respuestaSeleccionada: string;
+    errorDistractor: string;
+    pistaDistractor: string;
+    respuestaCorrecta?: string;
+  };
 
   if (!pregunta || !respuestaSeleccionada) {
     return NextResponse.json(
@@ -22,17 +28,18 @@ export async function POST(request: Request) {
   if (process.env.GEMINI_API_KEY) {
     try {
       const { generarRetroalimentacion } = await import("../../../lib/gemini");
-      feedback = await generarRetroalimentacion(
-        pregunta,
+      feedback = await generarRetroalimentacion({
+        textoPregunta: pregunta,
         respuestaSeleccionada,
+        respuestaCorrecta: respuestaCorrecta ?? "",
         errorDistractor,
         pistaDistractor,
-      );
+      });
     } catch {
       feedback = `No se pudo generar retroalimentación automática. Usa la pista: ${pistaDistractor}`;
     }
   } else {
-    feedback = `No se encontró la API de retroalimentación. Revisa tu respuesta y aplica esta pista: ${pistaDistractor}`;
+    feedback = `Revisa tu respuesta y aplica esta pista: ${pistaDistractor}`;
   }
 
   return NextResponse.json({ feedback });

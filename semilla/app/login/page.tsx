@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -12,20 +12,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [redirectTo, setRedirectTo] = useState("/alumno");
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const redirect = params.get("redirect");
-    if (redirect) setRedirectTo(redirect);
-  }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -37,14 +30,36 @@ export default function LoginPage() {
       return;
     }
 
-    router.push(redirectTo);
+    // Respetar ?redirect si existe
+    const params = new URLSearchParams(window.location.search);
+    const redirigir = params.get("redirect");
+    if (redirigir) {
+      router.push(redirigir);
+      return;
+    }
+
+    // Redirigir según rol
+    const rol = (data.user?.user_metadata?.rol as string | undefined)
+      ?.trim()
+      .toLowerCase();
+
+    if (
+      rol === "docente" ||
+      rol === "nexo.docente" ||
+      rol === "directivo" ||
+      rol === "nexo.directivo"
+    ) {
+      router.push("/tablero");
+    } else {
+      router.push("/alumno");
+    }
   }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-6 py-16 sm:px-10">
         <div className="rounded-3xl border border-zinc-800/80 bg-zinc-900/95 p-10 shadow-2xl shadow-black/20 backdrop-blur-xl">
-          <h1 className="text-4xl font-semibold text-white">Ingreso alumno</h1>
+          <h1 className="text-4xl font-semibold text-white">Ingresar a Nexo</h1>
           <p className="mt-3 max-w-xl text-zinc-400">
             Accede con tu cuenta de estudiante para continuar con el quiz y ver
             tu progreso.
