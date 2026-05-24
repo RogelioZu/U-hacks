@@ -1,48 +1,73 @@
 // Sección de libros de texto gratuitos de Telesecundaria (SEP) — Tercer grado.
-// Las portadas y los enlaces apuntan a librosconaliteg.com.mx, donde el
-// alumno puede visualizar/leer cada libro. Componente de servidor: presenta
-// datos estáticos; las portadas se delegan a PortadaLibro (cliente) para
-// gestionar carga y error.
+// Ciclo escolar 2025-2026. Colección Nanahuatzin.
+// Las portadas y los enlaces apuntan al visor oficial de CONALITEG.
+// Componente de servidor: presenta datos estáticos; las portadas se delegan
+// a PortadaLibro (cliente) para gestionar carga y error.
 
 import PortadaLibro from "./PortadaLibro";
 
 type Libro = {
   /** Materia mostrada en la tarjeta (texto corto). */
   materia: string;
-  /** URL de la portada. */
+  /** URL de la portada (visor CONALITEG). */
   imagen: string;
   /** URL de la página de visualización del libro. */
   enlace: string;
 };
 
-const BASE_IMG = "https://librosconaliteg.com.mx/libros/telesecundaria";
-const BASE_LINK = "https://librosconaliteg.com.mx/telesecundaria/tercer-grado";
+// Visor oficial CONALITEG 2025-2026 — Tercer grado Telesecundaria
+const BASE_CONALITEG = "https://libros.conaliteg.gob.mx/2025";
 
 const LIBROS: Libro[] = [
   {
-    materia: "Ciencias y Tecnología · Química",
-    imagen: `${BASE_IMG}/Ciencias-y-Tecnologia-Quimica-Tercer-Grado-Telesecundaria.jpg`,
-    enlace: `${BASE_LINK}/ciencias-y-tecnologia-quimica-tercer-grado-telesecundaria/`,
+    materia: "Libro para la maestra y el maestro",
+    imagen: `${BASE_CONALITEG}/T0LPM.htm`,
+    enlace: `${BASE_CONALITEG}/T0LPM.htm`,
   },
   {
-    materia: "Formación Cívica y Ética",
-    imagen: `${BASE_IMG}/Formacion-Civica-y-Etica-Tercer-Grado-Telesecundaria.jpg`,
-    enlace: `${BASE_LINK}/formacion-civica-y-etica-tercer-grado-telesecundaria/`,
+    materia: "Ética, naturaleza y sociedades",
+    imagen: `${BASE_CONALITEG}/T3ETA.htm`,
+    enlace: `${BASE_CONALITEG}/T3ETA.htm`,
   },
   {
-    materia: "Historia",
-    imagen: `${BASE_IMG}/Historia-Tercer-Grado-Telesecundaria.jpg`,
-    enlace: `${BASE_LINK}/historia-tercer-grado-telesecundaria/`,
+    materia: "De lo humano y lo comunitario",
+    imagen: `${BASE_CONALITEG}/T3HUA.htm`,
+    enlace: `${BASE_CONALITEG}/T3HUA.htm`,
   },
   {
-    materia: "Lengua Materna · Español",
-    imagen: `${BASE_IMG}/Lengua-Materna-Espanol-Tercer-Grado-Telesecundaria.jpg`,
-    enlace: `${BASE_LINK}/lengua-materna-espanol-tercer-grado-telesecundaria/`,
+    materia: "Projects and Readings",
+    imagen: `${BASE_CONALITEG}/T3INA.htm`,
+    enlace: `${BASE_CONALITEG}/T3INA.htm`,
   },
   {
-    materia: "Matemáticas",
-    imagen: `${BASE_IMG}/Matematicas-Tercer-Grado-Telesecundaria.jpg`,
-    enlace: `${BASE_LINK}/matematicas-tercer-grado-telesecundaria/`,
+    materia: "Lenguajes",
+    imagen: `${BASE_CONALITEG}/T3LEA.htm`,
+    enlace: `${BASE_CONALITEG}/T3LEA.htm`,
+  },
+  {
+    materia: "Proyectos · Tomo I",
+    imagen: `${BASE_CONALITEG}/T3LP1.htm`,
+    enlace: `${BASE_CONALITEG}/T3LP1.htm`,
+  },
+  {
+    materia: "Proyectos · Tomo II",
+    imagen: `${BASE_CONALITEG}/T3LP2.htm`,
+    enlace: `${BASE_CONALITEG}/T3LP2.htm`,
+  },
+  {
+    materia: "Proyectos · Tomo III",
+    imagen: `${BASE_CONALITEG}/T3LP3.htm`,
+    enlace: `${BASE_CONALITEG}/T3LP3.htm`,
+  },
+  {
+    materia: "Múltiples lenguajes",
+    imagen: `${BASE_CONALITEG}/T3MLA.htm`,
+    enlace: `${BASE_CONALITEG}/T3MLA.htm`,
+  },
+  {
+    materia: "Saberes y pensamiento científico",
+    imagen: `${BASE_CONALITEG}/T3SAA.htm`,
+    enlace: `${BASE_CONALITEG}/T3SAA.htm`,
   },
 ];
 
@@ -76,7 +101,7 @@ export default function LibrosTexto() {
             className="text-xs font-semibold uppercase tracking-widest"
             style={{ color: "var(--s-orange)" }}
           >
-            Biblioteca · Tercer grado
+            Col. Nanahuatzin · 3° · 2025-2026
           </p>
           <h2 className="text-2xl font-bold" style={{ color: "var(--s-navy)" }}>
             Libros de texto
@@ -98,7 +123,7 @@ export default function LibrosTexto() {
               href={libro.enlace}
               target="_blank"
               rel="noopener noreferrer"
-              title={`Abrir: ${libro.materia} — Tercer grado`}
+              title={`Abrir: ${libro.materia} — Col. Nanahuatzin 3° 2025-2026`}
               className="group block transition-transform duration-150 active:scale-[0.98]"
             >
               <div
@@ -107,7 +132,7 @@ export default function LibrosTexto() {
               >
                 <PortadaLibro
                   src={libro.imagen}
-                  alt={`Portada de ${libro.materia} — Tercer grado`}
+                  alt={`Portada de ${libro.materia} — Telesecundaria 3°`}
                 />
               </div>
               <p
