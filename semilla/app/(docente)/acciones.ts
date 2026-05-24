@@ -59,7 +59,10 @@ export async function guardarTemas(
   if (appExistente) {
     aplicacionId = appExistente.id;
     // Limpiar diagnósticos previos de esta semana/grupo
-    const { data: alumnosGrupo } = await supabase.from("alumno").select("id").eq("grupo_id", grupoId);
+    const { data: alumnosGrupo } = await supabase
+      .from("alumno")
+      .select("id")
+      .eq("grupo_id", grupoId);
     if (alumnosGrupo && alumnosGrupo.length > 0) {
       const alumnoIds = alumnosGrupo.map((a) => a.id);
       await supabase
@@ -76,7 +79,7 @@ export async function guardarTemas(
       .eq("aplicacion_id", aplicacionId);
 
     if (preguntasViejas && preguntasViejas.length > 0) {
-      const idsViejos = preguntasViejas.map(p => p.id);
+      const idsViejos = preguntasViejas.map((p) => p.id);
       await supabase
         .from("respuesta_alumno")
         .delete()
@@ -84,7 +87,10 @@ export async function guardarTemas(
     }
 
     // Ahora sí podemos limpiar las preguntas previas sin errores de Foreign Key
-    await supabase.from("pregunta_aplicada").delete().eq("aplicacion_id", aplicacionId);
+    await supabase
+      .from("pregunta_aplicada")
+      .delete()
+      .eq("aplicacion_id", aplicacionId);
   } else {
     const { data: newApp, error: errNewApp } = await supabase
       .from("aplicacion")
@@ -106,7 +112,11 @@ export async function guardarTemas(
   }
 
   // 2. Seleccionar preguntas de los temas elegidos (2 por tema)
-  const preguntasParaInsertar: { aplicacion_id: number; pregunta_id: number; orden: number }[] = [];
+  const preguntasParaInsertar: {
+    aplicacion_id: number;
+    pregunta_id: number;
+    orden: number;
+  }[] = [];
   let ordenActual = 1;
 
   for (const tId of temaIds) {

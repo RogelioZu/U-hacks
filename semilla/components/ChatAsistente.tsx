@@ -112,12 +112,32 @@ export default function ChatAsistente({
         style={{ background: copy.acento }}
       >
         {abierto ? (
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          <svg
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         ) : (
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4-.8L3 20l1.05-3.5C3.4 15.3 3 13.7 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          <svg
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4-.8L3 20l1.05-3.5C3.4 15.3 3 13.7 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+            />
           </svg>
         )}
       </button>
@@ -126,7 +146,10 @@ export default function ChatAsistente({
       {abierto && (
         <div
           className="fixed bottom-24 right-5 z-40 flex h-[28rem] w-[22rem] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border shadow-2xl"
-          style={{ background: "var(--s-surface)", borderColor: "var(--s-border)" }}
+          style={{
+            background: "var(--s-surface)",
+            borderColor: "var(--s-border)",
+          }}
         >
           {/* Encabezado */}
           <div
@@ -141,7 +164,12 @@ export default function ChatAsistente({
           <div className="flex-1 space-y-3 overflow-y-auto p-4">
             <Burbuja rol="model" texto={copy.saludo} />
             {mensajes.map((m, i) => (
-              <Burbuja key={i} rol={m.rol} texto={m.texto} acento={copy.acento} />
+              <Burbuja
+                key={i}
+                rol={m.rol}
+                texto={m.texto}
+                acento={copy.acento}
+              />
             ))}
             {enviando &&
               mensajes[mensajes.length - 1]?.rol === "model" &&
@@ -154,7 +182,10 @@ export default function ChatAsistente({
           </div>
 
           {/* Entrada */}
-          <div className="border-t p-3" style={{ borderColor: "var(--s-border)" }}>
+          <div
+            className="border-t p-3"
+            style={{ borderColor: "var(--s-border)" }}
+          >
             <div className="flex items-end gap-2">
               <textarea
                 value={entrada}
@@ -163,7 +194,10 @@ export default function ChatAsistente({
                 rows={1}
                 placeholder={copy.placeholder}
                 className="flex-1 resize-none rounded-xl border px-3 py-2 text-sm outline-none"
-                style={{ borderColor: "var(--s-border)", color: "var(--s-text)" }}
+                style={{
+                  borderColor: "var(--s-border)",
+                  color: "var(--s-text)",
+                }}
               />
               <button
                 type="button"
