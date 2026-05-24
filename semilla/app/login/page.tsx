@@ -33,8 +33,8 @@ export default function LoginPage() {
         error.message.includes("Email not confirmed")
           ? "Tu correo aún no ha sido confirmado. Revisa tu bandeja de entrada."
           : error.message.includes("Invalid login credentials")
-          ? "Correo o contraseña incorrectos."
-          : `Error al iniciar sesión: ${error.message}`
+            ? "Correo o contraseña incorrectos."
+            : `Error al iniciar sesión: ${error.message}`
       );
       return;
     }
@@ -130,10 +130,10 @@ export default function LoginPage() {
             <p className="font-semibold mb-1">Cuentas de demostración:</p>
             <ul className="space-y-1">
               <li>
-                <span className="font-medium">Alumno:</span> luis_mtz@alumno.semilla.edu <span className="opacity-70">(Clave: 1234)</span>
+                <span className="font-medium">Alumno:</span> ana@semilla.demo <span className="opacity-70">(Clave: 1234)</span>
               </li>
               <li>
-                <span className="font-medium">Docente:</span> rogelio_zga@docente.semilla.edu <span className="opacity-70">(Clave: 1234)</span>
+                <span className="font-medium">Docente:</span> carlos@semilla.demo <span className="opacity-70">(Clave: 1234)</span>
               </li>
             </ul>
           </div>
