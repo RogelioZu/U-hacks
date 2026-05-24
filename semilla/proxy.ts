@@ -8,10 +8,17 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Prefijo de ruta -> roles permitidos.
 const RUTAS_PROTEGIDAS: { prefijo: string; roles: string[] }[] = [
-  { prefijo: "/alumno", roles: ["alumno"] },
-  { prefijo: "/docente", roles: ["docente", "directivo"] },
-  { prefijo: "/admin", roles: ["admin_zonal"] },
+  { prefijo: "/alumno", roles: ["alumno", "nexo.alumno"] },
+  {
+    prefijo: "/docente",
+    roles: ["docente", "nexo.docente", "directivo", "nexo.directivo"],
+  },
+  { prefijo: "/admin", roles: ["admin_zonal", "nexo.admin_zonal"] },
 ];
+
+function normalizeRole(role?: string) {
+  return role?.trim().toLowerCase() ?? "";
+}
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -56,7 +63,16 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    const rol = (user.user_metadata?.rol as string | undefined) ?? "";
+    const rolRaw = (user.user_metadata?.rol as string | undefined) ?? "";
+    const rol = normalizeRole(rolRaw);
+
+    if (!rol) {
+      // Usuario autenticado pero sin rol asignado: pedir completar perfil.
+      const url = request.nextUrl.clone();
+      url.pathname = "/perfil";
+      return NextResponse.redirect(url);
+    }
+
     if (!reglaProtegida.roles.includes(rol)) {
       const url = request.nextUrl.clone();
       url.pathname = "/acceso-denegado";
@@ -69,5 +85,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // Corre en todas las rutas excepto estáticos y assets.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };

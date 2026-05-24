@@ -1,5 +1,3 @@
-import { GoogleGenAI } from "@google/genai";
-
 // Wrapper central de IA para Nexo.
 // Usa la API de Google Gemini (AI Studio) en lugar de OpenAI.
 // Modelo único configurable: cámbialo aquí y aplica a toda la app.
@@ -9,14 +7,18 @@ const apiKey = process.env.GEMINI_API_KEY;
 
 // Cliente perezoso: no rompe el build si la key aún no está configurada;
 // solo falla cuando realmente se invoca a la IA en el servidor.
-let _ai: GoogleGenAI | null = null;
-function getClient(): GoogleGenAI {
+let _ai: any | null = null;
+async function getClient(): Promise<any> {
   if (!apiKey) {
     throw new Error(
       "Falta GEMINI_API_KEY. Consíguela en https://aistudio.google.com/apikey y agrégala a .env.local",
     );
   }
-  if (!_ai) _ai = new GoogleGenAI({ apiKey });
+  if (!_ai) {
+    const module = await new Function("return import('@google/genai')")();
+    const { GoogleGenAI } = module;
+    _ai = new GoogleGenAI({ apiKey });
+  }
   return _ai;
 }
 
@@ -30,7 +32,9 @@ export async function generarRetroalimentacion(
   errorDistractor: string,
   pistaDistractor: string,
 ): Promise<string> {
-  const response = await getClient().models.generateContent({
+  const response = await (
+    await getClient()
+  ).models.generateContent({
     model: MODELO,
     contents: `El alumno respondió incorrectamente.
 Pregunta: ${textoPregunta}
@@ -65,7 +69,9 @@ export interface DatosSemana {
  * Lenguaje institucional formal; el docente lo revisa antes de enviar.
  */
 export async function generarReporteCTE(datos: DatosSemana): Promise<string> {
-  const response = await getClient().models.generateContent({
+  const response = await (
+    await getClient()
+  ).models.generateContent({
     model: MODELO,
     contents: `Genera el reporte CTE con estos datos:
 Grupo: ${datos.nombreGrupo} | Semana: ${datos.numeroSemana}
