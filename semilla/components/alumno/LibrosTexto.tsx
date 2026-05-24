@@ -9,66 +9,29 @@ import PortadaLibro from "./PortadaLibro";
 type Libro = {
   /** Materia mostrada en la tarjeta (texto corto). */
   materia: string;
-  /** URL de la portada (visor CONALITEG). */
-  imagen: string;
-  /** URL de la página de visualización del libro. */
-  enlace: string;
+  /** Clave CONALITEG del libro (p. ej. "T3ETA"). De aquí se derivan las URLs. */
+  clave: string;
 };
 
 // Visor oficial CONALITEG 2025-2026 — Tercer grado Telesecundaria
 const BASE_CONALITEG = "https://libros.conaliteg.gob.mx/2025";
 
+// La página del visor es `${clave}.htm`; la portada es la primera página del
+// libro, servida como imagen real en `/c/{clave}/001.jpg` (3 dígitos).
+const urlVisor = (clave: string) => `${BASE_CONALITEG}/${clave}.htm`;
+const urlPortada = (clave: string) => `${BASE_CONALITEG}/c/${clave}/001.jpg`;
+
 const LIBROS: Libro[] = [
-  {
-    materia: "Libro para la maestra y el maestro",
-    imagen: `${BASE_CONALITEG}/T0LPM.htm`,
-    enlace: `${BASE_CONALITEG}/T0LPM.htm`,
-  },
-  {
-    materia: "Ética, naturaleza y sociedades",
-    imagen: `${BASE_CONALITEG}/T3ETA.htm`,
-    enlace: `${BASE_CONALITEG}/T3ETA.htm`,
-  },
-  {
-    materia: "De lo humano y lo comunitario",
-    imagen: `${BASE_CONALITEG}/T3HUA.htm`,
-    enlace: `${BASE_CONALITEG}/T3HUA.htm`,
-  },
-  {
-    materia: "Projects and Readings",
-    imagen: `${BASE_CONALITEG}/T3INA.htm`,
-    enlace: `${BASE_CONALITEG}/T3INA.htm`,
-  },
-  {
-    materia: "Lenguajes",
-    imagen: `${BASE_CONALITEG}/T3LEA.htm`,
-    enlace: `${BASE_CONALITEG}/T3LEA.htm`,
-  },
-  {
-    materia: "Proyectos · Tomo I",
-    imagen: `${BASE_CONALITEG}/T3LP1.htm`,
-    enlace: `${BASE_CONALITEG}/T3LP1.htm`,
-  },
-  {
-    materia: "Proyectos · Tomo II",
-    imagen: `${BASE_CONALITEG}/T3LP2.htm`,
-    enlace: `${BASE_CONALITEG}/T3LP2.htm`,
-  },
-  {
-    materia: "Proyectos · Tomo III",
-    imagen: `${BASE_CONALITEG}/T3LP3.htm`,
-    enlace: `${BASE_CONALITEG}/T3LP3.htm`,
-  },
-  {
-    materia: "Múltiples lenguajes",
-    imagen: `${BASE_CONALITEG}/T3MLA.htm`,
-    enlace: `${BASE_CONALITEG}/T3MLA.htm`,
-  },
-  {
-    materia: "Saberes y pensamiento científico",
-    imagen: `${BASE_CONALITEG}/T3SAA.htm`,
-    enlace: `${BASE_CONALITEG}/T3SAA.htm`,
-  },
+  { materia: "Libro para la maestra y el maestro", clave: "T0LPM" },
+  { materia: "Ética, naturaleza y sociedades", clave: "T3ETA" },
+  { materia: "De lo humano y lo comunitario", clave: "T3HUA" },
+  { materia: "Projects and Readings", clave: "T3INA" },
+  { materia: "Lenguajes", clave: "T3LEA" },
+  { materia: "Proyectos · Tomo I", clave: "T3LP1" },
+  { materia: "Proyectos · Tomo II", clave: "T3LP2" },
+  { materia: "Proyectos · Tomo III", clave: "T3LP3" },
+  { materia: "Múltiples lenguajes", clave: "T3MLA" },
+  { materia: "Saberes y pensamiento científico", clave: "T3SAA" },
 ];
 
 export default function LibrosTexto() {
@@ -115,12 +78,12 @@ export default function LibrosTexto() {
       <ul className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
         {LIBROS.map((libro, i) => (
           <li
-            key={libro.enlace}
+            key={libro.clave}
             className="semilla-fade-up"
             style={{ ["--index" as string]: i }}
           >
             <a
-              href={libro.enlace}
+              href={urlVisor(libro.clave)}
               target="_blank"
               rel="noopener noreferrer"
               title={`Abrir: ${libro.materia} — Col. Nanahuatzin 3° 2025-2026`}
@@ -131,7 +94,7 @@ export default function LibrosTexto() {
                 style={{ borderColor: "var(--s-border)" }}
               >
                 <PortadaLibro
-                  src={libro.imagen}
+                  src={urlPortada(libro.clave)}
                   alt={`Portada de ${libro.materia} — Telesecundaria 3°`}
                 />
               </div>
