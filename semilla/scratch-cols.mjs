@@ -1,0 +1,16 @@
+import { createClient } from "@supabase/supabase-js";
+const url = "https://wpkrnxfxnerdsbkuubir.supabase.co";
+const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indwa3JueGZ4bmVyZHNia3V1YmlyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTU4MzQxNSwiZXhwIjoyMDk1MTU5NDE1fQ.LEITy7qYjdyyHZeE724U58chFveKtk2CYwtua-lGfF8";
+const supabase = createClient(url, key);
+
+async function run() {
+  const { data, error } = await supabase.from("diagnostico_alumno").select("*").limit(1);
+  if (data && data.length > 0) {
+    console.log("Columns:", Object.keys(data[0]));
+  } else {
+    // If empty, let's insert a dummy record and rollback or just fetch column info if possible.
+    // Actually, if it's empty, data[0] is undefined.
+    console.log("Empty table, no columns derived.", error);
+  }
+}
+run();

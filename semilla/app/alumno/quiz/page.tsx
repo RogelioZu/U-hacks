@@ -170,6 +170,9 @@ export default function AlumnoQuizPage() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [procesando, setProcesando] = useState(false);
   const [terminado, setTerminado] = useState(false);
+  
+  // Track questions failed on the first try
+  const [falladas, setFalladas] = useState<Set<number>>(new Set());
 
   const preguntaActual = preguntas[indice];
 
@@ -250,12 +253,26 @@ export default function AlumnoQuizPage() {
 
     if (clave === preguntaActual.correcta) {
       setEstadoRespuesta("correcta");
-      setScore((v) => v + 1);
+      if (!falladas.has(preguntaActual.id)) {
+        setScore((v) => v + 1);
+      }
       setMensaje("¡Muy bien! Respuesta correcta.");
       await guardarRespuesta(preguntaActual, clave, true, tiempoSeg);
 
       const siguiente = indice + 1;
       if (siguiente >= preguntas.length) {
+        // Cierre del quiz y cálculo del diagnóstico real
+        if (!modoDemo && alumnoId && aplicacionId) {
+          try {
+            await fetch("/api/quiz/finalizar", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ alumno_id: alumnoId, aplicacion_id: aplicacionId }),
+            });
+          } catch (err) {
+            console.error("[Quiz] Error al finalizar el quiz", err);
+          }
+        }
         setTimeout(() => setTerminado(true), 900);
       } else {
         setTimeout(() => {
@@ -269,6 +286,7 @@ export default function AlumnoQuizPage() {
     }
 
     setEstadoRespuesta("incorrecta");
+    setFalladas((prev) => new Set(prev).add(preguntaActual.id));
     setProcesando(true);
     await guardarRespuesta(preguntaActual, clave, false, tiempoSeg);
 

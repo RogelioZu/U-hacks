@@ -46,6 +46,74 @@ export async function guardarTemas(
     return { exito: false, error: "Error al guardar la selección de temas" };
   }
 
+  // ── INTEGRACIÓN: Generar Aplicación y Preguntas ──
+  // 1. Buscar o crear la aplicación para esta semana
+  let aplicacionId: number;
+  const { data: appExistente } = await supabase
+    .from("aplicacion")
+    .select("id")
+    .eq("semana_id", semanaId)
+    .eq("grupo_id", grupoId)
+    .maybeSingle();
+
+  if (appExistente) {
+    aplicacionId = appExistente.id;
+    // Limpiar preguntas previas si el profesor reconfigura
+    await supabase.from("pregunta_aplicada").delete().eq("aplicacion_id", aplicacionId);
+  } else {
+    const { data: newApp, error: errNewApp } = await supabase
+      .from("aplicacion")
+      .insert({
+        semana_id: semanaId,
+        grupo_id: grupoId,
+        fecha_inicio: new Date().toISOString(),
+        estado: "activa",
+        duracion_min: 30,
+      })
+      .select("id")
+      .single();
+
+    if (errNewApp) {
+      console.error("Error creando aplicación:", errNewApp);
+      return { exito: false, error: "Error al generar la aplicación del quiz" };
+    }
+    aplicacionId = newApp.id;
+  }
+
+  // 2. Seleccionar preguntas de los temas elegidos (2 por tema)
+  const preguntasParaInsertar: { aplicacion_id: number; pregunta_id: number; orden: number }[] = [];
+  let ordenActual = 1;
+
+  for (const tId of temaIds) {
+    const { data: preguntasTema } = await supabase
+      .from("pregunta")
+      .select("id")
+      .eq("tema_id", tId)
+      .limit(2); // Idealmente usar aleatoriedad, por ahora limitamos a 2
+
+    if (preguntasTema) {
+      for (const p of preguntasTema) {
+        preguntasParaInsertar.push({
+          aplicacion_id: aplicacionId,
+          pregunta_id: p.id,
+          orden: ordenActual++,
+        });
+      }
+    }
+  }
+
+  // 3. Insertar las preguntas aplicadas
+  if (preguntasParaInsertar.length > 0) {
+    const { error: errPreguntas } = await supabase
+      .from("pregunta_aplicada")
+      .insert(preguntasParaInsertar);
+
+    if (errPreguntas) {
+      console.error("Error insertando preguntas:", errPreguntas);
+      return { exito: false, error: "Error al asignar las preguntas al quiz" };
+    }
+  }
+
   // Refrescar caché de la ruta de configuración para que se vean los cambios
   const { revalidatePath } = await import("next/cache");
   revalidatePath("/configurar");

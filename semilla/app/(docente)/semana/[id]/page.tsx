@@ -52,25 +52,30 @@ export default async function PaginaDetalleSemana(props: { params: Promise<{ id:
       id,
       alumno_id,
       semana_id,
-      materia_id,
+      tema_id,
       nivel_dominio,
       requiere_repaso,
-      materia:materia_id(nombre)
+      tema:tema_id(materia:materia_id(nombre))
     `)
     .in("alumno_id", alumnoIds.length > 0 ? alumnoIds : [0])
     .eq("semana_id", semanaId);
 
-  const diagnosticos: DiagnosticoAlumno[] = (datosDiag ?? []).map((d, indice) => ({
-    id: d.id,
-    alumno_id: d.alumno_id,
-    alias: `Alumno ${String(indice + 1).padStart(2, "0")}`,
-    grupo_id: semana.grupo_id,
-    semana_id: d.semana_id,
-    materia_id: d.materia_id,
-    materia_nombre: ((d.materia as unknown) as { nombre: string } | null)?.nombre ?? "—",
-    nivel_dominio: d.nivel_dominio as 0 | 1 | 2 | 3,
-    requiere_repaso: d.requiere_repaso,
-  }));
+  const diagnosticos: DiagnosticoAlumno[] = (datosDiag ?? []).map((d, indice) => {
+    const temaData = d.tema as any;
+    const materiaNombre = temaData?.materia?.nombre ?? "—";
+
+    return {
+      id: d.id,
+      alumno_id: d.alumno_id,
+      alias: `Alumno ${String(indice + 1).padStart(2, "0")}`,
+      grupo_id: semana.grupo_id,
+      semana_id: d.semana_id,
+      materia_id: d.tema_id, // Hack
+      materia_nombre: materiaNombre,
+      nivel_dominio: d.nivel_dominio as 0 | 1 | 2 | 3,
+      requiere_repaso: d.requiere_repaso,
+    };
+  });
 
   // Obtener temas de esa semana
   const { data: temasData } = await admin
