@@ -135,8 +135,14 @@ Errores más frecuentes detectados: ${datos.erroresFrecuentes.join("; ") || "sin
     }],
     generationConfig: {
       temperature: 0.5,
-      maxOutputTokens: 1200,
-    }
+      maxOutputTokens: 8192,
+    },
+    safetySettings: [
+      { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+    ]
   };
 
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODELO}:generateContent?key=${apiKey}`, {
@@ -146,7 +152,17 @@ Errores más frecuentes detectados: ${datos.erroresFrecuentes.join("; ") || "sin
   });
 
   const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+  
+  let texto = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+  const finishReason = data.candidates?.[0]?.finishReason;
+  
+  if (finishReason === "SAFETY") {
+    texto += "\n\n[Nota del sistema: La IA interrumpió la generación del reporte debido a sus filtros de seguridad automáticos (por las palabras de Biología).]";
+  } else if (finishReason === "MAX_TOKENS") {
+    texto += "\n\n[El reporte continuará...]";
+  }
+
+  return texto || "No se pudo generar el reporte. Por favor intenta de nuevo.";
 }
 
 // ── 3. Chat conversacional (tutor del alumno / asistente del docente) ─────
